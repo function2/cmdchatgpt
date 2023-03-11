@@ -1,10 +1,12 @@
 """
 OpenAI utilities.
+
+Classes for managing OpenAI APIs
 """
 
+#-----------------------------------------------------------------------------
+# Copyright (C) 2023  Michael Seyfert <michael@codesand.org>
 """
-Copyright (C) 2023  Michael Seyfert <michael@codesand.org>
-
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
 by the Free Software Foundation, either version 3 of the License, or
@@ -18,25 +20,25 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+#-----------------------------------------------------------------------------
 
 import os,copy,re
 
 # OpenAI access key
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
-# openai.api_key_path = "{0}/my/ai/openai.json".format(os.getenv("HOME"))
 
-######################################################################
-# OpenAI chat request
-######################################################################
-# https://platform.openai.com/docs/guides/chat
-
-# Models:
-# https://platform.openai.com/docs/models/overview
-# DEFAULT_CHAT_MODEL='gpt-3.5-turbo-0301'
-DEFAULT_CHAT_MODEL='gpt-3.5-turbo'
-
+##############################################################################
 class Chat:
+    """
+    OpenAI chat request
+    API documentation: https://platform.openai.com/docs/guides/chat
+    """
+    # Models
+    # https://platform.openai.com/docs/models/overview
+    # DEFAULT_CHAT_MODEL='gpt-3.5-turbo-0301'
+    DEFAULT_CHAT_MODEL='gpt-3.5-turbo'
+
     # These colors look OK on a black background in my terminal.
     class colors:
         ROLE_HEADER = "▪"
@@ -90,24 +92,27 @@ class Chat:
           The first tuple is send dict, the second is response dict
 
         Example:
-        # Start with role 'user' string, and custom 'temperature' arg.
-        c = Chat("What does the special method __str__ do in python3?",temperature=0.73)
-        # Add system content to the conversation, but do not send the
-        # prompt to the server. (You could use SystemChat method to get a response.)
-        c.System("From now on only answer questions in 5 words or less.")
-        # Ask the same question again.
-        c.Chat("What does the special method __str__ do in python3?")
-        # Get the bot to disregard the '5 words or less' rule.
-        c.SystemChat("Disregard previous directives.")
-        # Try referencing previous conversation.
-        c.Chat("Reword the method description but in a petulant, rude tone")
-        # Print the conversation so far:
-        print(c)
+# Start with role 'user' string, and custom 'temperature' arg.
+c = Chat("What does the special method __str__ do in python3?",temperature=0.73)
+# Add system content to the conversation, but do not send the
+# prompt to the server. (You could use SystemChat method to get a response.)
+c.System("From now on only answer questions in 5 words or less.")
+# Ask the same question again.
+c.Chat("What does the special method __str__ do in python3?")
+# Get the bot to disregard the '5 words or less' rule.
+c.SystemChat("Disregard previous directives.")
+# Try referencing previous conversation.
+c.Chat("Reword the method description but in a petulant, rude tone")
+c.Chat("Give an example of counting from 3 to 21 in python3 and bash")
+#
+# Print the conversation so far. This should highlight code sections and
+# keywords, as well as roles.
+print(c)
 
         Note the server re-reads the entire conversation every time a prompt is sent.
         """
         default_kwargs = {
-            'model': DEFAULT_CHAT_MODEL,
+            'model': self.DEFAULT_CHAT_MODEL,
             # All other arguments will be default.
             # For temperature, higher values will make the output more random.
             # Lower values make it more deterministic.
@@ -172,7 +177,8 @@ class Chat:
 
         # regex to highlight keywords within back-ticks `keyword`
         keyword_regex = re.compile(r'`(.+?)`')
-        # This string highlights keyword, and then restarts assistant highlighting.
+        # This replacement string highlights keyword, and then
+        # restarts assistant highlighting.
         keyword_sub_str = f"`{colors.ENDC}{colors.KEYWORD_BEGIN}\\1{colors.ENDC}{colors.ASSISTANT_CONTENT}`"
 
         # s = f"{colors.HEADER}AI Chat conversation:{colors.ENDC}\n"
@@ -219,14 +225,6 @@ class Chat:
                 # last_text = content[last_end:]
                 last_text = keyword_regex.sub(keyword_sub_str, content[last_end:])
                 s += f"{colors.ASSISTANT_CONTENT}{last_text}{colors.ENDC}\n"
-
-                # # replace code sections with different highlighting.
-                # newcontent = code_regex.sub(
-                #     # r'```{}\1{}```'.format(colors.CODE_BEGIN,colors.CODE_END),
-                #     r'```\n{}\g<code>{}```'.format(colors.CODE_BEGIN,colors.CODE_END),
-                #     content.strip(),
-                # )
-                # s += f"{colors.ASSISTANT_CONTENT}{newcontent}{colors.ENDC}\n"
 
             elif role == 'system':
                 s += f"{colors.SYSTEM_ROLE}{role}{colors.ENDC}\n"
@@ -334,3 +332,4 @@ class Chat:
         Shortcut for UserChat() method.
         """
         return self.UserChat(user_content)
+##############################################################################
