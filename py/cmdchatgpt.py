@@ -23,6 +23,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import openai_util as oai
 import sys
+import argparse
 
 def Go():
     c = oai.Chat()
