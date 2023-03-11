@@ -26,7 +26,47 @@ import sys
 import argparse
 
 def Go():
+    parser = argparse.ArgumentParser(
+        prog='cmdchatgpt',
+        description='Command line ChatGPT',
+        # epilog='Text at the bottom of help',
+    )
+    # mutually exclusive args
+    # group = parser.add_mutually_exclusive_group()
+    # group.add_argument("-v", "--verbose", action="store_true")
+    # group.add_argument("-q", "--quiet", action="store_true")
+
+    # This allows multiple -v -vv -vvv etc.
+    parser.add_argument(
+        "-v", "--verbosity", help='increase output verbosity',
+        action="count", default=0
+    )
+    parser.add_argument(
+        "-r", "--role",help='role',type=str,default='u',
+        choices=('u','a','s','user','assistant','system'),
+    )
+    parser.add_argument(
+        "string",nargs='+',type=str
+    )
+    # -vv display running python file path+name
+    args = parser.parse_args()
+    if args.verbosity >= 2:
+        print(f"Running '{__file__}'")
+    # -v display args we're using
+    content = " ".join(args.string)
+    if args.verbosity >= 1:
+        print(f"role = '{args.role}'")
+        print(f"content = '{content}'")
+    role = args.role
+    #
     c = oai.Chat()
+    if role[0] == 'u':
+        c.User(content)
+    elif role[0] == 's':
+        c.System(content)
+    elif role[0] == 'a':
+        c.Assistant(content)
+    c.Send()
     print(c)
 
 if __name__ == "__main__":
