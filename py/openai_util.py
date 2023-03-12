@@ -23,6 +23,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #-----------------------------------------------------------------------------
 
 import os,copy,re
+import json
 
 # OpenAI access key
 import openai
@@ -84,6 +85,10 @@ class Chat:
 
         user_prompt is an optional user content to begin the conversation.
 
+        args = args sent to the server when chatting.
+         args contains things like the model to use, and the temperature.
+        TODO make so we can pass different args when conversing.
+
         messages = List of messages in the conversation so far.
           This is a list of dict.
 
@@ -92,8 +97,8 @@ class Chat:
           The first tuple is send dict, the second is response dict
 
         Example:
-# Start with role 'user' string, and custom 'temperature' arg.
-c = Chat("What does the special method __str__ do in python3?",temperature=0.73)
+# Init with 'user' content, and use custom 'temperature' arg.
+c = Chat("What does the special method __str__ do in python3?", temperature=0.73)
 # Add system content to the conversation, but do not send the
 # prompt to the server. (You could use SystemChat method to get a response.)
 c.System("From now on only answer questions in 5 words or less.")
@@ -111,10 +116,21 @@ print(c)
 
         Note the server re-reads the entire conversation every time a prompt is sent.
         """
+        # If variables given as kwargs, put them in the right place
+        # This is so we can do load JSON encoding from constructor.
+        # See (self.JSONDump)
+        # messages = List of messages in the conversation.
+        self.messages = kwargs.pop('messages',[])
+        # prompts_and_responses = All prompts sent to the AI and responses.
+        self.prompts_and_responses = kwargs.pop('prompts_and_responses',[])
+        self.args = kwargs.pop('args',{})
+
         default_kwargs = {
             'model': self.DEFAULT_CHAT_MODEL,
             # All other arguments will be default.
-            # For temperature, higher values will make the output more random.
+
+            # temperature
+            # Higher values will make the output more random.
             # Lower values make it more deterministic.
             # 'temperature' : 0.5,
 
@@ -126,9 +142,10 @@ print(c)
         }
         # self.args does not contain 'messages', but all other params
         # to send to the server.
-        self.args = default_kwargs | kwargs
-        self.messages = [] # List of messages in the conversation.
-        self.prompts_and_responses = [] # List of all prompts to the AI and responses.
+        # If default args are not already in args, put them.
+        self.args |= default_kwargs
+        self.args |= kwargs
+
         # If initial user content given
         if user_prompt:
             self.User(user_prompt)
@@ -182,6 +199,7 @@ print(c)
         keyword_sub_str = f"`{colors.ENDC}{colors.KEYWORD_BEGIN}\\1{colors.ENDC}{colors.ASSISTANT_CONTENT}`"
 
         # s = f"{colors.HEADER}AI Chat conversation:{colors.ENDC}\n"
+        # TODO use io.StringIO instead of str
         s = ""
         for m in self.messages:
             role = m['role']
@@ -279,7 +297,9 @@ print(c)
         response = openai.ChatCompletion.create(**args)
 
         # Save the prompt and the response from the network.
-        self.prompts_and_responses.append( (args, response) )
+        # self.prompts_and_responses.append( (args, response) )
+        # use list instead of tuple so json.load gives equivalent.
+        self.prompts_and_responses.append( [args, response] )
         #
         return response
 
@@ -332,4 +352,18 @@ print(c)
         Shortcut for UserChat() method.
         """
         return self.UserChat(user_content)
+
+    def JSONDump(self):
+        """
+        Dump JSON string representation of the conversation.
+
+        The resulting string can be loaded with json.loads() :
+            c = Chat("...")
+            jstr = c.JSONDump()
+            d = json.loads(jstr)
+            c2 = Chat(**d)
+
+        """
+        # Use the compact form for separators.
+        return json.dumps(self.__dict__, separators=(',',':'))
 ##############################################################################

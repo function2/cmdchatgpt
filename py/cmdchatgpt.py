@@ -24,6 +24,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import openai_util as oai
 import sys
 import argparse
+import pickle
 
 def Go():
     parser = argparse.ArgumentParser(
@@ -46,14 +47,17 @@ def Go():
         choices=('u','a','s','user','assistant','system'),
     )
     parser.add_argument(
-        "string",nargs='+',type=str
+        "-n", "--no-ansi",help='Disable ansi escape sequences on output',
+        action="store_true",
     )
+    parser.add_argument(
+        "content",nargs='+',help='content string',type=str,)
     # -vv display running python file path+name
     args = parser.parse_args()
     if args.verbosity >= 2:
         print(f"Running '{__file__}'")
     # -v display args we're using
-    content = " ".join(args.string)
+    content = " ".join(args.content)
     if args.verbosity >= 1:
         print(f"role = '{args.role}'")
         print(f"content = '{content}'")
