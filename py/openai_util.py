@@ -23,7 +23,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #-----------------------------------------------------------------------------
 
 import os,copy,re
-import json
+import io,json
 
 # OpenAI access key
 import openai
@@ -34,11 +34,12 @@ class Chat:
     """
     OpenAI chat request
     API documentation: https://platform.openai.com/docs/guides/chat
+
+    This class keeps track of a conversation and all
+    prompts/responses.
+    Conversation can be ANSI highlighted for terminal,
+       converted to JSON string.
     """
-    # Models
-    # https://platform.openai.com/docs/models/overview
-    # DEFAULT_CHAT_MODEL='gpt-3.5-turbo-0301'
-    DEFAULT_CHAT_MODEL='gpt-3.5-turbo'
 
     # These colors look OK on a black background in my terminal.
     class colors:
@@ -126,7 +127,11 @@ print(c)
         self.args = kwargs.pop('args',{})
 
         default_kwargs = {
-            'model': self.DEFAULT_CHAT_MODEL,
+            # model
+            # https://platform.openai.com/docs/models/overview
+            # 'model'='gpt-3.5-turbo-0301'
+            'model': 'gpt-3.5-turbo',
+
             # All other arguments will be default.
 
             # temperature
@@ -163,6 +168,13 @@ print(c)
         """
         return len(self.messages)
 
+    def __eq__(self,o):
+        """
+        Check the message log to see if conversations are equivalent.
+        args and past prompts which got here don't matter.
+        """
+        return self.messages == o.messages
+
     def StrTerm(self):
         """
         Return string representation of the conversation,
@@ -198,23 +210,23 @@ print(c)
         # restarts assistant highlighting.
         keyword_sub_str = f"`{colors.ENDC}{colors.KEYWORD_BEGIN}\\1{colors.ENDC}{colors.ASSISTANT_CONTENT}`"
 
+        # Build return string.
+        s = io.StringIO()
         # s = f"{colors.HEADER}AI Chat conversation:{colors.ENDC}\n"
-        # TODO use io.StringIO instead of str
-        s = ""
         for m in self.messages:
             role = m['role']
             content = m['content'].strip()
 
             # Print 'asterisk' for role.
-            s += f"{colors.ROLE_HEADER_COLOR}{colors.ROLE_HEADER}{colors.ENDC} "
+            s.write(f"{colors.ROLE_HEADER_COLOR}{colors.ROLE_HEADER}{colors.ENDC} ")
             # Print role and content.
             # Use different colors, highlighting depending on role.
             if role == 'user':
-                s += f"{colors.USER_ROLE}{role}{colors.ENDC}\n"
-                s += f"{colors.USER_CONTENT}{content}{colors.ENDC}\n"
+                s.write(f"{colors.USER_ROLE}{role}{colors.ENDC}\n")
+                s.write(f"{colors.USER_CONTENT}{content}{colors.ENDC}\n")
                 continue
             elif role == 'assistant':
-                s += f"{colors.ASSISTANT_ROLE}{role}{colors.ENDC}\n"
+                s.write(f"{colors.ASSISTANT_ROLE}{role}{colors.ENDC}\n")
 
                 # Look for code sections in content (for syntax highlighting)
                 last_end = 0 # Position of end of last code section.
@@ -229,27 +241,29 @@ print(c)
                     newbefore = keyword_regex.sub(keyword_sub_str,before)
                     #.format(colors.ENDC,colors.KEYWORD_BEGIN,colors.KEYWORD_END),before)
 
-                    s += f"{colors.ASSISTANT_CONTENT}{newbefore}{colors.ENDC}"
+                    s.write(f"{colors.ASSISTANT_CONTENT}{newbefore}{colors.ENDC}")
                     # code section
-                    if lang: # Output language in parenthesis if given.
-                        s += f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}({colors.ENDC}{colors.CODE_SEP_LANG}{lang}{colors.ENDC}{colors.CODE_SEP_STARTER}){colors.ENDC}\n"
+                    if lang:
+                        # Output language in parenthesis if given.
+                        s.write(f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}({colors.ENDC}{colors.CODE_SEP_LANG}{lang}{colors.ENDC}{colors.CODE_SEP_STARTER}){colors.ENDC}\n")
                     else:
-                        s += f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}{colors.ENDC}\n"
-                    s += f"{colors.CODE_BEGIN}{code}{colors.ENDC}"
-                    s += f"{colors.CODE_SEP_ENDER}{colors.CODE_END_TXT}{colors.ENDC}\n"
+                        # Output code header without language
+                        s.write(f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}{colors.ENDC}\n")
+                    s.write(f"{colors.CODE_BEGIN}{code}{colors.ENDC}")
+                    s.write(f"{colors.CODE_SEP_ENDER}{colors.CODE_END_TXT}{colors.ENDC}\n")
                     #
                     last_end = m.end() # record position of end of code section.
                 # Print last text.
                 # last_text = content[last_end:]
                 last_text = keyword_regex.sub(keyword_sub_str, content[last_end:])
-                s += f"{colors.ASSISTANT_CONTENT}{last_text}{colors.ENDC}\n"
+                s.write(f"{colors.ASSISTANT_CONTENT}{last_text}{colors.ENDC}\n")
 
             elif role == 'system':
-                s += f"{colors.SYSTEM_ROLE}{role}{colors.ENDC}\n"
-                s += f"{colors.SYSTEM_CONTENT}{content}{colors.ENDC}\n"
+                s.write(f"{colors.SYSTEM_ROLE}{role}{colors.ENDC}\n")
+                s.write(f"{colors.SYSTEM_CONTENT}{content}{colors.ENDC}\n")
                 continue
         # s += f"{colors.ENDER}End of conversation{colors.ENDC}\n"
-        return s
+        return s.getvalue()
 
     def __str__(self):
         """
@@ -282,15 +296,17 @@ print(c)
         """
         self.Add('user', content)
 
-    def _Send0(self):
+    def _Send0(self, **kw):
         """
         Send the conversation, returning the response. This will not
         append the response to the list of messages of the conversation.
 
         All chat operations will end up calling this basic function.
+
+        kw will override any arguments in self.args (temperature, etc)
         """
         # Do deep copy to make sure prompts_and_responses are all unique.
-        args = copy.deepcopy(self.args)
+        args = copy.deepcopy(self.args) | kw
         args['messages'] = copy.deepcopy(self.messages)
 
         # Call the OpenAI chat API.
@@ -303,7 +319,7 @@ print(c)
         #
         return response
 
-    def Send(self):
+    def Send(self, **kw):
         """
         Send the conversation, append the response message to the
         conversation (messages variable), and return the response.
@@ -311,22 +327,22 @@ print(c)
         response = OpenAIObject chat.completion (JSON dict)
         """
         # Append the response to the conversation.
-        response = self._Send0()
+        response = self._Send0(**kw)
         # Need to convert this to python dict object
         # otherwise it is a JSON type of object.
         response_message = dict(response['choices'][0]['message'])
         self.messages.append(response_message)
         return response
 
-    def _Chat0(self):
+    def _Chat0(self, **kw):
         """
         Same as Send() but return the response as a basic string
         of the content.
         """
-        response = self.Send()
+        response = self.Send(**kw)
         return response['choices'][0]['message']['content'].strip()
 
-    def UserChat(self,user_content):
+    def UserChat(self,user_content, **kw):
         """
         Append content as a 'user' role to the conversation,
         then send the conversation to the AI,
@@ -334,24 +350,24 @@ print(c)
         return the response message as a string.
         """
         self.User(user_content)
-        return self._Chat0()
-    def SystemChat(self,system_content):
+        return self._Chat0(**kw)
+    def SystemChat(self,system_content, **kw):
         """
         Same as UserChat but use 'system' as the role.
         """
         self.System(system_content)
-        return self._Chat0()
-    def AssistantChat(self,assistant_content):
+        return self._Chat0(**kw)
+    def AssistantChat(self,assistant_content, **kw):
         """
         Same as UserChat but use 'assistant' as the role.
         """
-        self.Assistant(assistant_content)
-        return self._Chat0()
-    def Chat(self,user_content):
+        self.Assistant(assistant_content, **kw)
+        return self._Chat0(**kw)
+    def Chat(self,user_content, **kw):
         """
         Shortcut for UserChat() method.
         """
-        return self.UserChat(user_content)
+        return self.UserChat(user_content, **kw)
 
     def JSONDump(self):
         """
