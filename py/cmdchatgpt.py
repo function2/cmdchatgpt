@@ -22,9 +22,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #-----------------------------------------------------------------------------
 
 import openai_util as oai
-import sys
+import os,sys
 import argparse
-import pickle
 
 def Go():
     parser = argparse.ArgumentParser(
@@ -39,7 +38,7 @@ def Go():
 
     # This allows multiple -v -vv -vvv etc.
     parser.add_argument(
-        "-v", "--verbosity", help='increase output verbosity',
+        "-v", "--verbosity", help='increase output verbosity (use up to 3 times)',
         action="count", default=0
     )
     parser.add_argument(
@@ -51,27 +50,38 @@ def Go():
         action="store_true",
     )
     parser.add_argument(
-        "content",nargs='+',help='content string',type=str,)
-    # -vv display running python file path+name
+        "content",nargs='*',help='content string (if not given read from stdin)',type=str,
+    )
     args = parser.parse_args()
-    if args.verbosity >= 2:
-        print(f"Running '{__file__}'")
-    # -v display args we're using
     content = " ".join(args.content)
-    if args.verbosity >= 1:
+    if not content:
+        if args.verbosity >= 1:
+            print("No content given, reading from stdin")
+        # Read from standard input until EOF.
+        content = sys.stdin.read()
+    #
+    if args.verbosity >= 2: # -vv display running python file path+name
+        print(f"Running '{__file__}'")
+    if args.verbosity >= 1: # -v display args we're using
         print(f"role = '{args.role}'")
         print(f"content = '{content}'")
     role = args.role
     #
-    c = oai.Chat()
-    if role[0] == 'u':
-        c.User(content)
-    elif role[0] == 's':
-        c.System(content)
-    elif role[0] == 'a':
-        c.Assistant(content)
-    c.Send()
-    print(c)
+    if content:
+        c = oai.Chat()
+        if role[0] == 'u':
+            c.User(content)
+        elif role[0] == 's':
+            c.System(content)
+        elif role[0] == 'a':
+            c.Assistant(content)
+        # c.Send()
+        # print(c)
+    # Get home directory
+    home_dir = os.environ['HOME']
+    app_dir = os.path.join(home_dir, ".cmdchatgpt")
+    if not os.path.exists(app_dir):
+        os.makedirs(app_dir)
 
 if __name__ == "__main__":
     Go()

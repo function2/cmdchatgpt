@@ -2,6 +2,9 @@
 OpenAI utilities.
 
 Classes for managing OpenAI APIs
+
+Chat() object keeps a conversation.
+ChatDatabase() object keeps a database of many conversations.
 """
 
 #-----------------------------------------------------------------------------
@@ -24,10 +27,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os,copy,re
 import io,json
+import sqlite3 as sql # For storing conversations
+import configparser # For configuration file TODO
 
 # OpenAI access key
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+__all__ = [
+    'Chat',
+    'ChatDatabase',
+]
+__uri__ = "https://github.com/function2/cmdchatgpt"
+
+# __version__ = "1.5.0"
+
+__author__ = "Michael Seyfert"
+__email__ = "michael@codesand.org"
+
+__license__ = "GNU Affero General Public License version 3"
+__copyright__ = "Copyright 2023 {}".format(__author__)
 
 ##############################################################################
 class Chat:
@@ -36,13 +55,41 @@ class Chat:
     API documentation: https://platform.openai.com/docs/guides/chat
 
     This class keeps track of a conversation and all
-    prompts/responses.
+    prompts/responses to/from the server.
     Conversation can be ANSI highlighted for terminal,
-       converted to JSON string.
+       converted to JSON string,
+       ...
     """
 
+    DEFAULT_ARGS = {
+        # model
+        # https://platform.openai.com/docs/models/overview
+        # 'model'='gpt-3.5-turbo-0301'
+        'model': 'gpt-3.5-turbo',
+        # 'model': 'gpt-4',
+        # 'model': 'gpt-4-32k',
+
+        # All other arguments will be default.
+        # https://platform.openai.com/docs/api-reference/completions/create
+
+        # temperature
+        # Higher values will make the output more random.
+        # Lower values make it more deterministic.
+        # 'temperature' : 0.5,
+
+        # maximum tokens
+        # 'max_tokens' : 4096,
+
+        # Add a user ID. Usually this should be hashed email or login.
+        # 'user' : 'user123456',
+    }
+
     # These colors look OK on a black background in my terminal.
+    # TODO put these in config file?
     class colors:
+        """
+        Specifies ANSI terminal colors and highlighting.
+        """
         ROLE_HEADER = "▪"
         ROLE_HEADER_COLOR = '\033[93m' # yellow
 
@@ -61,7 +108,8 @@ class Chat:
 
         # At the beginning of a code section, switch highlighting.
         # CODE_BEGIN = ENDC + '\u001b[32m' # green
-        CODE_BEGIN = ENDC + '\033[34m' # dark blue
+        CODE_BEGIN = '\033[34m' # dark blue
+        # CODE_BEGIN = '\033[01;34m' # blue
         # At the end of a code section, restart standard highlighting.
         # CODE_END = ENDC + ASSISTANT_CONTENT
 
@@ -75,41 +123,63 @@ class Chat:
         CODE_SEP_STARTER = '\033[01;32m' # green
         CODE_SEP_ENDER = CODE_SEP_STARTER
         # Highlights the language name of a code section.
-        CODE_SEP_LANG = '\033[4m' + '\033[38;5;170m' # underline + orchid
-
+        # CODE_SEP_LANG = '\033[4m' + '\033[38;5;170m' # underline + orchid
+        CODE_SEP_LANG = '\033[0;31m'+  '\033[4m' # underline + darker red
         # Highlighting keywords within text sections.
-        KEYWORD_BEGIN = ENDC + '\033[96m'
+        KEYWORD_BEGIN = '\033[96m'
 
-    def __init__(self, user_prompt=None, **kwargs):
+    class nocolors:
         """
+        Specifies `colors` used for non-color terminal. No ANSI escape strings.
+        """
+        ROLE_HEADER = "*"
+        ROLE_HEADER_COLOR = ''
+        ENDC = ''
+        USER_ROLE = ''
+        USER_CONTENT = ''
+        ASSISTANT_ROLE = ''
+        ASSISTANT_CONTENT = ''
+        SYSTEM_ROLE = ''
+        SYSTEM_CONTENT = ''
+        CODE_BEGIN = ''
+        CODE_START_TXT = '[[['
+        CODE_END_TXT = ']]]'
+        CODE_SEP_STARTER = ''
+        CODE_SEP_ENDER = CODE_SEP_STARTER
+        CODE_SEP_LANG = ''
+        KEYWORD_BEGIN = ''
+
+    def __init__(self, user_content=None, **kwargs):
+        r"""
         OpenAI Chat conversation.
 
         user_prompt is an optional user content to begin the conversation.
 
         args = args sent to the server when chatting.
-         args contains things like the model to use, and the temperature.
-        TODO make so we can pass different args when conversing.
+         args contains things like the model, temperature, user, etc.
 
         messages = List of messages in the conversation so far.
           This is a list of dict.
 
         prompts_and_responses = ALL prompts sent to the network, and the responses.
           This is a list of tuples,
-          The first tuple is send dict, the second is response dict
+          The first element is send dict, the second is response dict
 
         Example:
-# Init with 'user' content, and use custom 'temperature' arg.
-c = Chat("What does the special method __str__ do in python3?", temperature=0.73)
+# Init with role 'user' content, and use custom 'user' arg.
+c = Chat("What does the special method __str__ do in python3?", user='helloworld')
 # Add system content to the conversation, but do not send the
 # prompt to the server. (You could use SystemChat method to get a response.)
-c.System("From now on only answer questions in 5 words or less.")
+c.System("You are an AI programming assistant.")
+c.System("Always respond in 5 words or less.")
 # Ask the same question again.
 c.Chat("What does the special method __str__ do in python3?")
-# Get the bot to disregard the '5 words or less' rule.
+# Try to get the bot to disregard the '5 words or less' rule.
 c.SystemChat("Disregard previous directives.")
-# Try referencing previous conversation.
-c.Chat("Reword the method description but in a petulant, rude tone")
-c.Chat("Give an example of counting from 3 to 21 in python3 and bash")
+# Try referencing previous conversation, use different 'temperature'
+c.Chat("Reword the method description but in a petulant, rude tone",temperature=1.0)
+# Get bot to give multiple languages output, to test syntax highlighting regex.
+c.Chat("Give an example of counting from 3 to 21 in python3, bash, and C++")
 #
 # Print the conversation so far. This should highlight code sections and
 # keywords, as well as roles.
@@ -118,42 +188,28 @@ print(c)
         Note the server re-reads the entire conversation every time a prompt is sent.
         """
         # If variables given as kwargs, put them in the right place
-        # This is so we can do load JSON encoding from constructor.
-        # See (self.JSONDump)
+        # This is so we can load JSON dictionary from constructor.
+        # See JSONDump
+
+        # self.args does not contain 'messages', but all other default params
+        # to send to the server when communicating. (such as temperature, etc)
+
+        # Override default args with any given in dictionary kwargs['args']
+        # Typically this only happens if loading from
+        # JSON string json.loads() dictionary.
+        self.args = self.DEFAULT_ARGS | kwargs.pop('args',{})
         # messages = List of messages in the conversation.
         self.messages = kwargs.pop('messages',[])
         # prompts_and_responses = All prompts sent to the AI and responses.
         self.prompts_and_responses = kwargs.pop('prompts_and_responses',[])
-        self.args = kwargs.pop('args',{})
 
-        default_kwargs = {
-            # model
-            # https://platform.openai.com/docs/models/overview
-            # 'model'='gpt-3.5-turbo-0301'
-            'model': 'gpt-3.5-turbo',
-
-            # All other arguments will be default.
-
-            # temperature
-            # Higher values will make the output more random.
-            # Lower values make it more deterministic.
-            # 'temperature' : 0.5,
-
-            # maximum tokens
-            # 'max_tokens' : 4096,
-
-            # Add a user ID. Usually this should be hashed email or login.
-            # 'user' : 'user123456',
-        }
-        # self.args does not contain 'messages', but all other params
-        # to send to the server.
-        # If default args are not already in args, put them.
-        self.args |= default_kwargs
+        # We 'pop' all of the above from kwargs so that
+        # any overriding arguments can be given directly in kwargs
         self.args |= kwargs
 
         # If initial user content given
-        if user_prompt:
-            self.User(user_prompt)
+        if user_content:
+            self.User(user_content)
             self.Send()
 
     def __bool__(self):
@@ -224,7 +280,7 @@ print(c)
             if role == 'user':
                 s.write(f"{colors.USER_ROLE}{role}{colors.ENDC}\n")
                 s.write(f"{colors.USER_CONTENT}{content}{colors.ENDC}\n")
-                continue
+
             elif role == 'assistant':
                 s.write(f"{colors.ASSISTANT_ROLE}{role}{colors.ENDC}\n")
 
@@ -239,7 +295,6 @@ print(c)
                     # text before code section.
                     # Highlight keywords in this text section.
                     newbefore = keyword_regex.sub(keyword_sub_str,before)
-                    #.format(colors.ENDC,colors.KEYWORD_BEGIN,colors.KEYWORD_END),before)
 
                     s.write(f"{colors.ASSISTANT_CONTENT}{newbefore}{colors.ENDC}")
                     # code section
@@ -261,7 +316,6 @@ print(c)
             elif role == 'system':
                 s.write(f"{colors.SYSTEM_ROLE}{role}{colors.ENDC}\n")
                 s.write(f"{colors.SYSTEM_CONTENT}{content}{colors.ENDC}\n")
-                continue
         # s += f"{colors.ENDER}End of conversation{colors.ENDC}\n"
         return s.getvalue()
 
@@ -378,8 +432,18 @@ print(c)
             jstr = c.JSONDump()
             d = json.loads(jstr)
             c2 = Chat(**d)
-
         """
         # Use the compact form for separators.
         return json.dumps(self.__dict__, separators=(',',':'))
+##############################################################################
+
+##############################################################################
+class ChatDatabase:
+    r"""
+    Stores multiple OpenAI chat conversations.
+
+    Allows for saving Chat conversations to a database on disk.
+    """
+    def __init__(self):
+        pass
 ##############################################################################
