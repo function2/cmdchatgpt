@@ -1,3 +1,17 @@
+# Copyright (C) 2023  Michael Seyfert <michael@codesand.org>
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """
 OpenAI utilities.
 
@@ -7,28 +21,9 @@ Chat() object keeps a conversation.
 ChatDatabase() object keeps a database of many conversations.
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (C) 2023  Michael Seyfert <michael@codesand.org>
-"""
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published
-by the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
-#-----------------------------------------------------------------------------
-
 import os,copy,re
 import io,json
-import sqlite3 as sql # For storing conversations
-import configparser # For configuration file TODO
+import sqlite3 as sql
 
 # OpenAI access key
 import openai
@@ -40,7 +35,7 @@ __all__ = [
 ]
 __uri__ = "https://github.com/function2/cmdchatgpt"
 
-# __version__ = "1.5.0"
+__version__ = "0.1"
 
 __author__ = "Michael Seyfert"
 __email__ = "michael@codesand.org"
@@ -258,7 +253,9 @@ print(c)
         # code_regex = re.compile(r'(?P<before>(?:.|\n)*?)```(?P<lang>.*)\n(?P<code>(?:.|\n)*?)```')
         # This version makes sure the ``` is after a newline or start of string.
         #  (just in case ``` could be used in the code or text itself.)
-        code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n))```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n)```')
+        # code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n))```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n)```')
+        # Same but allow whitespace before the ``` and ending ```
+        code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n)\s*)```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n\s*)```')
 
         # regex to highlight keywords within back-ticks `keyword`
         keyword_regex = re.compile(r'`(.+?)`')
@@ -444,6 +441,47 @@ class ChatDatabase:
 
     Allows for saving Chat conversations to a database on disk.
     """
-    def __init__(self):
-        pass
+    def __init__(self,db_filename, table_name='chats'):
+        self.db_filename = db_filename
+        self.table_name = table_name
+        self.con = sql.connect(db_filename)
+        self.cur = self.con.cursor()
+        try:
+            self.cur.execute("CREATE TABLE {}(name TEXT PRIMARY KEY,json TEXT)".format(self.table_name))
+            self.con.commit()
+        except sql.OperationalError as e:
+            print("Unable to create table: OperationalError: {}".format(e))
+    def __del__(self):
+        # Note sure if this is necessary but do it anyways.
+        self.con.commit()
+        self.cur.close()
+        self.con.close()
+    def AddChat(self,name,chat):
+        """
+        Add a chat conversation to the table.
+
+        This will replace the conversation if one named 'name' already exists.
+        """
+        # try:
+        self.cur.execute("INSERT OR REPLACE INTO {}(name,json) VALUES (?,?)".format(self.table_name),
+                         (name, chat.JSONDump()))
+        # except sql.IntegrityError as e:
+        #     print("Failed to add chat: IntegrityError: {}".format(e))
+        # else:
+        self.con.commit()
+    def AddChats(self,name_chat_pairs):
+        """
+        """
+    def GetChat(self, name):
+        """
+        Get chat conversation with name 'name'
+        """
+        self.cur.execute("SELECT json FROM {} WHERE name = ?".format(self.table_name), (name,))
+        r = self.cur.fetchall()
+        if not r:
+            return Chat()
+        return Chat(**json.loads(r[0][0]))
+    def GetAll(self):
+        self.cur.execute("SELECT * FROM {}".format(self.table_name))
+        return self.cur.fetchall()
 ##############################################################################
