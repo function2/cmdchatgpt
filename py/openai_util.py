@@ -226,6 +226,17 @@ print(c)
         """
         return self.messages == o.messages
 
+    def pop(self,index = -1):
+        """
+        Remove and return conversation message at index (default last).
+
+        This returns a dict:
+        {'role': '...', 'content': '...'}
+
+        Raises IndexError if list is empty or index is out of range.
+        """
+        return self.messages.pop(index)
+
     def StrTerm(self):
         """
         Return string representation of the conversation,
@@ -450,18 +461,46 @@ class ChatDatabase:
             self.cur.execute("CREATE TABLE {}(name TEXT PRIMARY KEY,json TEXT)".format(self.table_name))
             self.con.commit()
         except sql.OperationalError as e:
-            print("Unable to create table: OperationalError: {}".format(e))
+            # Assume the table already exists.
+            # print("Unable to create table: OperationalError: {}".format(e))
+            pass
     def __del__(self):
         # Note sure if this is necessary but do it anyways.
-        self.con.commit()
-        self.cur.close()
+        # self.con.commit()
+        # self.cur.close()
         self.con.close()
+    def __len__(self):
+        # Could make this very slightly faster.
+        return len(self.GetNames())
+    def __enter__(self):
+        return self
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        # Just call __del__ for now.
+        self.__del__()
+    def __getitem__(self,index):
+        """
+        Get conversation with name 'index'
+        """
+        return self.GetChat(index)
+    def __setitem__(self,index,value):
+        """
+        Same as AddChat(index,value)
+        """
+        return self.AddChat(index,value)
+    def __delitem__(self,index):
+        """
+        Same as DelChat(index)
+        """
+        return self.DelChat(index)
     def AddChat(self,name,chat):
         """
-        Add a chat conversation to the table.
+        Add a chat conversation to the table. return bool
 
         This will replace the conversation if one named 'name' already exists.
+        If you try to enter an empty conversation nothing will happen, return False
         """
+        if not chat.messages and not chat.prompts_and_responses:
+            return
         # try:
         self.cur.execute("INSERT OR REPLACE INTO {}(name,json) VALUES (?,?)".format(self.table_name),
                          (name, chat.JSONDump()))
@@ -469,6 +508,26 @@ class ChatDatabase:
         #     print("Failed to add chat: IntegrityError: {}".format(e))
         # else:
         self.con.commit()
+        return True
+    def DelChat(self, name):
+        """
+        Remove a chat from the conversation
+        """
+        self.cur.execute("DELETE FROM {} WHERE name = ?".format(self.table_name),(name,))
+        self.con.commit()
+    def PopChat(self,name):
+        """
+        Remove a chat from the conversation, return removed chat.
+        returns empty Chat() if not removed.
+        """
+        c = self.GetChat(name)
+        self.DelChat(name)
+        return c
+    def pop(self, name):
+        """
+        same as PopChat()
+        """
+        return self.PopChat(name)
     def AddChats(self,name_chat_pairs):
         """
         """
@@ -481,7 +540,19 @@ class ChatDatabase:
         if not r:
             return Chat()
         return Chat(**json.loads(r[0][0]))
+    def GetNames(self):
+        """
+        Get the names of all conversations stored in this database.
+        """
+        self.cur.execute("SELECT name FROM {}".format(self.table_name))
+        r = self.cur.fetchall()
+        if not r:
+            return []
+        return [k[0] for k in r]
     def GetAll(self):
+        """
+        TODO Test debug function.
+        """
         self.cur.execute("SELECT * FROM {}".format(self.table_name))
         return self.cur.fetchall()
 ##############################################################################
