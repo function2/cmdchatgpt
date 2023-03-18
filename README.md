@@ -1,4 +1,4 @@
-# cmdchatgpt: Command Line ChatGPT.
+# cmdchatgpt: Command Line ChatGPT
 
 cmdchatgpt is a command line interface to ChatGPT
 It provides:
