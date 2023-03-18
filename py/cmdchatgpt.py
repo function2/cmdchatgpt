@@ -71,8 +71,8 @@ def Go():
             c.System(content)
         elif role[0] == 'a':
             c.Assistant(content)
-        # c.Send()
-        # print(c)
+        c.Send()
+        print(c)
     # Get home directory
     home_dir = os.environ['HOME']
     app_dir = os.path.join(home_dir, ".cmdchatgpt")

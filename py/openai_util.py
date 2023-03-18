@@ -17,8 +17,13 @@ OpenAI utilities.
 
 Classes for managing OpenAI APIs
 
-Chat() object keeps a conversation.
-ChatDatabase() object keeps a database of many conversations.
+## Classes:
+
+Chat()
+    a single conversation.
+
+ChatDatabase()
+    contains many conversations. Can be stored to an SQLite file, or in memory.
 """
 
 import os,copy,re
@@ -34,12 +39,9 @@ __all__ = [
     'ChatDatabase',
 ]
 __uri__ = "https://github.com/function2/cmdchatgpt"
-
 __version__ = "0.1"
-
 __author__ = "Michael Seyfert"
 __email__ = "michael@codesand.org"
-
 __license__ = "GNU Affero General Public License version 3"
 __copyright__ = "Copyright 2023 {}".format(__author__)
 
@@ -51,9 +53,8 @@ class Chat:
 
     This class keeps track of a conversation and all
     prompts/responses to/from the server.
-    Conversation can be ANSI highlighted for terminal,
+    The conversation can be ANSI escape highlighted for a terminal,
        converted to JSON string,
-       ...
     """
 
     DEFAULT_ARGS = {
@@ -458,7 +459,7 @@ class ChatDatabase:
         self.con = sql.connect(db_filename)
         self.cur = self.con.cursor()
         try:
-            self.cur.execute("CREATE TABLE {}(name TEXT PRIMARY KEY,json TEXT)".format(self.table_name))
+            self.cur.execute(f"CREATE TABLE {self.table_name}(name TEXT PRIMARY KEY,json TEXT)")
             self.con.commit()
         except sql.OperationalError as e:
             # Assume the table already exists.
@@ -492,6 +493,13 @@ class ChatDatabase:
         Same as DelChat(index)
         """
         return self.DelChat(index)
+
+    def items(self):
+        """
+        return a set-like object providing a view of items (name, Chat)
+        """
+        return ChatDB_Items(self.con,self.table_name)
+
     def AddChat(self,name,chat):
         """
         Add a chat conversation to the table. return bool
@@ -502,7 +510,7 @@ class ChatDatabase:
         if not chat.messages and not chat.prompts_and_responses:
             return
         # try:
-        self.cur.execute("INSERT OR REPLACE INTO {}(name,json) VALUES (?,?)".format(self.table_name),
+        self.cur.execute(f"INSERT OR REPLACE INTO {self.table_name}(name,json) VALUES (?,?)",
                          (name, chat.JSONDump()))
         # except sql.IntegrityError as e:
         #     print("Failed to add chat: IntegrityError: {}".format(e))
@@ -513,7 +521,7 @@ class ChatDatabase:
         """
         Remove a chat from the conversation
         """
-        self.cur.execute("DELETE FROM {} WHERE name = ?".format(self.table_name),(name,))
+        self.cur.execute(f"DELETE FROM {self.table_name} WHERE name = ?", (name,))
         self.con.commit()
     def PopChat(self,name):
         """
@@ -535,24 +543,52 @@ class ChatDatabase:
         """
         Get chat conversation with name 'name'
         """
-        self.cur.execute("SELECT json FROM {} WHERE name = ?".format(self.table_name), (name,))
-        r = self.cur.fetchall()
-        if not r:
+        self.cur.execute(f"SELECT json FROM {self.table_name} WHERE name = ?", (name,))
+        rows = self.cur.fetchall()
+        if not rows:
             return Chat()
-        return Chat(**json.loads(r[0][0]))
+        return Chat(**json.loads(rows[0][0]))
     def GetNames(self):
         """
         Get the names of all conversations stored in this database.
         """
-        self.cur.execute("SELECT name FROM {}".format(self.table_name))
-        r = self.cur.fetchall()
-        if not r:
+        self.cur.execute(f"SELECT name FROM {self.table_name}")
+        rows = self.cur.fetchall()
+        if not rows:
             return []
-        return [k[0] for k in r]
+        return [k[0] for k in rows]
     def GetAll(self):
         """
         TODO Test debug function.
         """
-        self.cur.execute("SELECT * FROM {}".format(self.table_name))
+        self.cur.execute(f"SELECT * FROM {self.table_name}")
         return self.cur.fetchall()
+##############################################################################
+
+##############################################################################
+class ChatDB_Items:
+    """
+    Provides a way of iterating through the conversations in the DB.
+    """
+    def __init__(self, con, table_name):
+        """
+        con is a SQL object that has a cursor() function which allows us
+        to view the DB
+        """
+        self.cur = con.cursor()
+        # Execute SELECT statement ready the items.
+        self.cur.execute(f"SELECT * FROM {table_name}")
+    def __iter__(self):
+        return self
+    def __next__(self):
+        row = self.cur.fetchone()
+        if not row:
+            raise StopIteration
+
+        # Make sure DB is sound.
+        assert len(row) == 2 # (name, json str) = row
+
+        name = row[0]
+        chat = Chat(**json.loads(row[1])) # convert JSON to Chat object.
+        return (name,chat)
 ##############################################################################
