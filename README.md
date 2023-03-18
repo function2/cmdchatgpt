@@ -6,7 +6,7 @@ from the command line. It provides:
  - Syntax Highlighting using ANSI escapes for terminal.
  - Storage of many conversations in a SQLite database.
 
-![Image of a conversation's terminal output](https://myoctocat.com/assets/images/base-octocat.svg)
+![Image of a conversation's terminal output](https://github.com/function2/cmdchatgpt/raw/assets/screenshot_2023-03-18.png)
 
 ## Usage
 
