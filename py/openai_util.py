@@ -493,6 +493,19 @@ class ChatDatabase:
         Same as DelChat(index)
         """
         return self.DelChat(index)
+    def __str__(self):
+        """
+        returns a string containing
+
+        the names of conversations,
+        the number of messages in each.
+        """
+        s = io.StringIO()
+        s.write("ChatDatabase(")
+        for (name, chat) in self.items():
+            s.write(f"'{name}': {len(chat)}, ")
+        s.write(")")
+        return s.getvalue()
 
     def items(self):
         """

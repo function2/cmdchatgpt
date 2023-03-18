@@ -1,7 +1,7 @@
 # cmdchatgpt: Command Line ChatGPT.
 
-cmdchatgpt allows you to communicate with OpenAI's ChatGPT
-from the command line. It provides:
+cmdchatgpt is a command line interface to ChatGPT
+It provides:
 
  - Syntax Highlighting using ANSI escapes for terminal.
  - Storage of many conversations in a SQLite database.
