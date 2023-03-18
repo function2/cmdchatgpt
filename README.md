@@ -6,9 +6,13 @@ from the command line. It provides:
  - Syntax Highlighting using ANSI escapes for terminal.
  - Storage of many conversations in a SQLite database.
 
+![Image of a conversation's terminal output](https://myoctocat.com/assets/images/base-octocat.svg)
+
 ## Usage
 
-You must set the OPENAI_API_KEY environment variable to your API key.
+First get an API Key at https://platform.openai.com
+
+You must set the `OPENAI_API_KEY` environment variable to your API key.
 Example (in .profile or .bashrc):
 
 ```
