@@ -17,13 +17,21 @@ OpenAI utilities.
 
 Classes for managing OpenAI APIs
 
+# To create a conversation with the AI
+c = Chat("How do exceptions work in Python 3? Give examples")
+
+# To save a conversation to a database
+db = ChatDatabase('a.sqlite')
+db['my_conversation'] = c
+
 ## Classes:
 
 Chat()
     a single conversation.
 
 ChatDatabase()
-    contains many conversations. Can be stored to an SQLite file, or in memory.
+    Contains many conversations. Can be stored to an SQLite file, or in memory.
+    Works similar to a dict()
 """
 
 import os,copy,re
@@ -111,10 +119,10 @@ class Chat:
 
         # Separator before a code section begins.
         # ChatGPT uses ``` , but we can replace it with regex
-        # CODE_START_TXT = '```'
-        # CODE_END_TXT = '```'
-        CODE_START_TXT = '「'
-        CODE_END_TXT = ' 」'
+        CODE_START_TXT = '```'
+        CODE_END_TXT = '```'
+        # CODE_START_TXT = '「'
+        # CODE_END_TXT = ' 」'
         # CODE_SEP_STARTER = '\033[38;2;139;69;19m'
         CODE_SEP_STARTER = '\033[01;32m' # green
         CODE_SEP_ENDER = CODE_SEP_STARTER
@@ -223,7 +231,8 @@ print(c)
     def __eq__(self,o):
         """
         Check the message log to see if conversations are equivalent.
-        args and past prompts which got here don't matter.
+        args and past prompts which got here don't matter
+        (so they may not be completely identical, with different self.args)
         """
         return self.messages == o.messages
 
@@ -333,6 +342,24 @@ print(c)
         Return string representation of the conversation.
         """
         return self.StrTerm()
+
+    def __repr__(self):
+        """
+        This will return the number of each role in the conversation, along with
+        the total number of characters in the content.
+        """
+        counts = [0,0,0] # user, assistant, system
+        char_counts = [0,0,0]
+        idx = {'user':0, 'assistant':1, 'system':2}
+        # u,a,s = 0,0,0
+        # cu,ca,cs = 0,0,0
+        for k in self.messages:
+            index = idx[k['role']]
+            counts[index] += 1
+            char_counts[index] += len(k['content'])
+        s = io.StringIO()
+        s.write(f"{self.__module__}.{self.__class__.__name__} @{hex(id(self))}({counts[0]} user {char_counts[0]} chars, {counts[1]} assistant {char_counts[1]} chars, {counts[2]} system {char_counts[2]} chars)[total = {sum(char_counts)} chars]")
+        return s.getvalue()
 
     def Add(self, role, content):
         """
@@ -452,6 +479,7 @@ class ChatDatabase:
     Stores multiple OpenAI chat conversations.
 
     Allows for saving Chat conversations to a database on disk.
+    Works similar to a dict()
     """
     def __init__(self,db_filename, table_name='chats'):
         self.db_filename = db_filename
@@ -506,12 +534,33 @@ class ChatDatabase:
             s.write(f"'{name}': {len(chat)}, ")
         s.write(")")
         return s.getvalue()
+    def __repr__(self):
+        return self.__str__()
 
     def items(self):
         """
         return a set-like object providing a view of items (name, Chat)
         """
         return ChatDB_Items(self.con,self.table_name)
+    def keys(self):
+        return self.names()
+    def names(self):
+        """
+        returns an iterator object for all names in the database.
+        """
+        return ChatDB_Names(self.con,self.table_name)
+
+    def __ior__(self, other):
+        """
+        The OR operator for ChatDatabase operates like that for dict()
+        a = ChatDatabase()
+        b = ChatDatabase()
+        a |= b
+        This adds all conversations from b into a, overwriting any with the same names.
+        """
+        for name, chat in other.items():
+            self.AddChat(name,chat)
+        return self
 
     def AddChat(self,name,chat):
         """
@@ -581,7 +630,7 @@ class ChatDatabase:
 ##############################################################################
 class ChatDB_Items:
     """
-    Provides a way of iterating through the conversations in the DB.
+    Provides a way of iterating through the conversations in the DB, table.
     """
     def __init__(self, con, table_name):
         """
@@ -598,10 +647,25 @@ class ChatDB_Items:
         if not row:
             raise StopIteration
 
-        # Make sure DB is sound.
-        assert len(row) == 2 # (name, json str) = row
+        # If we change SQL table format, we must update iterator code.
+        assert len(row) == 2
 
         name = row[0]
         chat = Chat(**json.loads(row[1])) # convert JSON to Chat object.
         return (name,chat)
+
+class ChatDB_Names:
+    """
+    Provides a way of iterating through the names of conversations in a table.
+    """
+    def __init__(self,con, table_name):
+        self.cur = con.cursor()
+        self.cur.execute(f"SELECT name FROM {table_name}")
+    def __iter__(self):
+        return self
+    def __next__(self):
+        row = self.cur.fetchone()
+        if not row:
+            raise StopIteration
+        return row[0]
 ##############################################################################
