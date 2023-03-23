@@ -105,7 +105,7 @@ def Go():
         # Read from stdin until EOF.
         # TODO check if reading from pipe or terminal input.
         # TODO readline library?
-        print(f"Enter content for conversation '{args.chat}', role '{role}':")
+        print(f"Enter content for conversation '{args.chat}', role {role}:")
         content = sys.stdin.read().strip()
     #
     # if args.verbosity >= 1:
@@ -124,6 +124,7 @@ def Go():
         chat.Assistant(content)
     print("Sending conversation...")
     response = chat.Send()
+    db[args.chat] = chat # Store chat with response in the database
     prompt_tokens = response['usage']['prompt_tokens']
     completion_tokens = response['usage']['completion_tokens']
     total_tokens = response['usage']['total_tokens']
@@ -132,11 +133,9 @@ def Go():
         print("sent args=")
         print(pprint.pformat(chat.prompts_and_responses[-1][0]))
         print("response=")
-        print(pprint.pformat(chat.prompts_and_responses[-1][0]))
-    # Store in database
-    db[args.chat] = chat
-    # Print the conversation
-    print(chat)
+        print(pprint.pformat(chat.prompts_and_responses[-1][1]))
+    # Print the result
+    print(chat.StrTermIndex(-2) + chat.StrTermIndex(-1))
 
 if __name__ == "__main__":
     Go()

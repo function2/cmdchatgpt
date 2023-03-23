@@ -268,6 +268,16 @@ print(c)
         # s += f"{colors.ENDER}End of conversation{colors.ENDC}\n"
         return s.getvalue()
 
+    def StrTermIndex(self,index):
+        """
+        Return string representation of content in the conversation.
+        this is self.messages[index]
+        Useful if you only want to print specific messages.
+        """
+        role = self.messages[index]['role']
+        content = self.messages[index]['content']
+        return self.GetContentStrTerm(role,content)
+
     def __str__(self):
         """
         Return string representation of the conversation.
@@ -304,7 +314,6 @@ print(c)
         use ANSI escape sequences to color the output for terminal.
         returns str
         """
-
         s = io.StringIO()
         # Print 'asterisk' for role.
         s.write(f"{colors.ROLE_HEADER_COLOR}{colors.ROLE_HEADER}{colors.ENDC} ")
