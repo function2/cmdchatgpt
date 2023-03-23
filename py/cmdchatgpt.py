@@ -20,6 +20,7 @@ Command line ChatGPT
 from openai_util import *
 import os,sys
 import argparse
+import pprint
 
 def Go():
     parser = argparse.ArgumentParser(
@@ -69,7 +70,7 @@ def Go():
     #
     home_dir = os.environ['HOME']
     app_dir = os.path.join(home_dir, ".cmdchatgpt")
-    if args.verbosity >= 2:
+    if args.verbosity >= 1:
         print(f"app_dir = {app_dir}")
     # if not os.path.exists(app_dir):
     os.makedirs(app_dir, exist_ok=True)
@@ -77,13 +78,11 @@ def Go():
     # Open or create the database.
     #
     database_path = os.path.join(app_dir,"a.sqlite")
-    if args.verbosity >= 2:
+    if args.verbosity >= 1:
         print(f"database_path = {database_path}")
     db = ChatDatabase(database_path)
     if not args.chat:
         args.chat = "default" # TODO for now.
-    if args.verbosity >= 1:
-        print(f"Using chat conversation '{args.chat}'")
     chat = db[args.chat]
     if chat:
         print("Conversation so far:")
@@ -116,7 +115,7 @@ def Go():
     if not content:
         return
     if args.verbosity >= 1:
-        print(f"using model {chat.args['model']}")
+        print(f"Using model {chat.args['model']}")
     if role[0] == 'u':
         chat.User(content)
     elif role[0] == 's':
@@ -130,8 +129,10 @@ def Go():
     total_tokens = response['usage']['total_tokens']
     print(f"Total tokens used: {total_tokens}  (prompt: {prompt_tokens}, completion: {completion_tokens})")
     if args.verbosity >= 2:
-        print(f"sent args={chat.prompts_and_responses[-1][0]}")
-        print(f"response={chat.prompts_and_responses[-1][0]}")
+        print("sent args=")
+        print(pprint.pformat(chat.prompts_and_responses[-1][0]))
+        print("response=")
+        print(pprint.pformat(chat.prompts_and_responses[-1][0]))
     # Store in database
     db[args.chat] = chat
     # Print the conversation
