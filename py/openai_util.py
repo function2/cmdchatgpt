@@ -634,7 +634,7 @@ class ChatDatabase:
         return [k[0] for k in rows]
     def GetAll(self):
         """
-        TODO Test debug function.
+        Test debug function.
         """
         self.cur.execute(f"SELECT * FROM {self.table_name}")
         return self.cur.fetchall()

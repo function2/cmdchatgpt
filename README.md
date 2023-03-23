@@ -4,8 +4,9 @@ cmdchatgpt is a command line interface to ChatGPT
 It provides:
 
  - Storage of many conversations in a SQLite database.
- - Command line use of ChatGPT
+ - Command line use of ChatGPT.
  - Syntax Highlighting using ANSI escapes for terminal.
+ - Create templates or copy a conversation.
 
 ![Image of a conversation's terminal output](https://github.com/function2/cmdchatgpt/raw/assets/screenshot_2023-03-18.png)
 
