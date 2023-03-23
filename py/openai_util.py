@@ -251,38 +251,12 @@ print(c)
         """
         Return string representation of the conversation,
         use ANSI escape sequences to color the output for terminal.
+        returns str
         """
         colors = self.colors
 
         if not self:
             return "<empty conversation>"
-
-        # regex for responses that contain code to be highlighted.
-        # We put (.|\n) here otherwise matching stops at newline.
-        # We use '*?' to match the shortest string possible (in case there
-        #  are multiple code sections in an answer.)
-
-        # Basic version finds the code inside.
-        # code_regex = re.compile(r'```((.|\n)*?)```')
-
-        # This one will get the name of the language if given.
-        # code_regex = re.compile(r'```(?P<lang>.*)\n(?P<code>(?:.|\n)*?)```')
-
-        # This regex will get the text before the code section <before>
-        # Then the language of the code section <lang>
-        # Then the code itself <code>
-        # code_regex = re.compile(r'(?P<before>(?:.|\n)*?)```(?P<lang>.*)\n(?P<code>(?:.|\n)*?)```')
-        # This version makes sure the ``` is after a newline or start of string.
-        #  (just in case ``` could be used in the code or text itself.)
-        # code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n))```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n)```')
-        # Same but allow whitespace before the ``` and ending ```
-        code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n)\s*)```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n\s*)```')
-
-        # regex to highlight keywords within back-ticks `keyword`
-        keyword_regex = re.compile(r'`(.+?)`')
-        # This replacement string highlights keyword, and then
-        # restarts assistant highlighting.
-        keyword_sub_str = f"`{colors.ENDC}{colors.KEYWORD_BEGIN}\\1{colors.ENDC}{colors.ASSISTANT_CONTENT}`"
 
         # Build return string.
         s = io.StringIO()
@@ -290,50 +264,7 @@ print(c)
         for m in self.messages:
             role = m['role']
             content = m['content'].strip()
-
-            # Print 'asterisk' for role.
-            s.write(f"{colors.ROLE_HEADER_COLOR}{colors.ROLE_HEADER}{colors.ENDC} ")
-            # Print role and content.
-            # Use different colors, highlighting depending on role.
-            if role == 'user':
-                s.write(f"{colors.USER_ROLE}{role}{colors.ENDC}\n")
-                s.write(f"{colors.USER_CONTENT}{content}{colors.ENDC}\n")
-
-            elif role == 'assistant':
-                s.write(f"{colors.ASSISTANT_ROLE}{role}{colors.ENDC}\n")
-
-                # Look for code sections in content (for syntax highlighting)
-                last_end = 0 # Position of end of last code section.
-                for m in code_regex.finditer(content):
-                    # here m is re.Match object.
-                    g = m.groups()
-                    before = g[0]
-                    lang = g[1] # language of code section (if any)
-                    code = g[2]
-                    # text before code section.
-                    # Highlight keywords in this text section.
-                    newbefore = keyword_regex.sub(keyword_sub_str,before)
-
-                    s.write(f"{colors.ASSISTANT_CONTENT}{newbefore}{colors.ENDC}")
-                    # code section
-                    if lang:
-                        # Output language in parenthesis if given.
-                        s.write(f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}({colors.ENDC}{colors.CODE_SEP_LANG}{lang}{colors.ENDC}{colors.CODE_SEP_STARTER}){colors.ENDC}\n")
-                    else:
-                        # Output code header without language
-                        s.write(f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}{colors.ENDC}\n")
-                    s.write(f"{colors.CODE_BEGIN}{code}{colors.ENDC}")
-                    s.write(f"{colors.CODE_SEP_ENDER}{colors.CODE_END_TXT}{colors.ENDC}\n")
-                    #
-                    last_end = m.end() # record position of end of code section.
-                # Print last text.
-                # last_text = content[last_end:]
-                last_text = keyword_regex.sub(keyword_sub_str, content[last_end:])
-                s.write(f"{colors.ASSISTANT_CONTENT}{last_text}{colors.ENDC}\n")
-
-            elif role == 'system':
-                s.write(f"{colors.SYSTEM_ROLE}{role}{colors.ENDC}\n")
-                s.write(f"{colors.SYSTEM_CONTENT}{content}{colors.ENDC}\n")
+            s.write(self.GetContentStrTerm(role,content))
         # s += f"{colors.ENDER}End of conversation{colors.ENDC}\n"
         return s.getvalue()
 
@@ -342,6 +273,88 @@ print(c)
         Return string representation of the conversation.
         """
         return self.StrTerm()
+
+    # regex for responses that contain code to be highlighted.
+    # We put (.|\n) here otherwise matching stops at newline.
+    # We use '*?' to match the shortest string possible (in case there
+    #  are multiple code sections in an answer.)
+
+    # Basic version finds the code inside.
+    # code_regex = re.compile(r'```((.|\n)*?)```')
+
+    # This one will get the name of the language if given.
+    # code_regex = re.compile(r'```(?P<lang>.*)\n(?P<code>(?:.|\n)*?)```')
+
+    # This regex will get the text before the code section <before>
+    # Then the language of the code section <lang>
+    # Then the code itself <code>
+    # code_regex = re.compile(r'(?P<before>(?:.|\n)*?)```(?P<lang>.*)\n(?P<code>(?:.|\n)*?)```')
+    # This version makes sure the ``` is after a newline or start of string.
+    #  (just in case ``` could be used in the code or text itself.)
+    # code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n))```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n)```')
+    # Same but allow whitespace before the ``` and ending ```
+    code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n)\s*)```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n\s*)```')
+
+    # regex to highlight keywords within back-ticks `keyword`
+    keyword_regex = re.compile(r'`(.+?)`')
+
+    def GetContentStrTerm(self,role,content,colors = colors):
+        """
+        Return string representation of one role/content.
+        use ANSI escape sequences to color the output for terminal.
+        returns str
+        """
+
+        s = io.StringIO()
+        # Print 'asterisk' for role.
+        s.write(f"{colors.ROLE_HEADER_COLOR}{colors.ROLE_HEADER}{colors.ENDC} ")
+        # Print role and content.
+        # Use different colors, highlighting depending on role.
+        if role == 'user':
+            s.write(f"{colors.USER_ROLE}{role}{colors.ENDC}\n")
+            s.write(f"{colors.USER_CONTENT}{content}{colors.ENDC}\n")
+
+        elif role == 'assistant':
+            # This replacement string highlights keyword, and then
+            # restarts assistant highlighting.
+            keyword_sub_str = f"`{colors.ENDC}{colors.KEYWORD_BEGIN}\\1{colors.ENDC}{colors.ASSISTANT_CONTENT}`"
+
+            s.write(f"{colors.ASSISTANT_ROLE}{role}{colors.ENDC}\n")
+
+            # Look for code sections in content (for syntax highlighting)
+            last_end = 0 # Position of end of last code section.
+            for m in self.code_regex.finditer(content):
+                # here m is re.Match object.
+                g = m.groups()
+                before = g[0]
+                lang = g[1] # language of code section (if any)
+                code = g[2]
+                # text before code section.
+                # Highlight keywords in this text section.
+                newbefore = self.keyword_regex.sub(keyword_sub_str,before)
+
+                s.write(f"{colors.ASSISTANT_CONTENT}{newbefore}{colors.ENDC}")
+                # code section
+                if lang:
+                    # Output language in parenthesis if given.
+                    s.write(f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}({colors.ENDC}{colors.CODE_SEP_LANG}{lang}{colors.ENDC}{colors.CODE_SEP_STARTER}){colors.ENDC}\n")
+                else:
+                    # Output code header without language
+                    s.write(f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}{colors.ENDC}\n")
+                s.write(f"{colors.CODE_BEGIN}{code}{colors.ENDC}")
+                s.write(f"{colors.CODE_SEP_ENDER}{colors.CODE_END_TXT}{colors.ENDC}\n")
+                #
+                last_end = m.end() # record position of end of code section.
+            # Print last text.
+            # last_text = content[last_end:]
+            last_text = self.keyword_regex.sub(keyword_sub_str, content[last_end:])
+            s.write(f"{colors.ASSISTANT_CONTENT}{last_text}{colors.ENDC}\n")
+
+        elif role == 'system':
+            s.write(f"{colors.SYSTEM_ROLE}{role}{colors.ENDC}\n")
+            s.write(f"{colors.SYSTEM_CONTENT}{content}{colors.ENDC}\n")
+
+        return s.getvalue()
 
     def __repr__(self):
         """
@@ -556,7 +569,7 @@ class ChatDatabase:
         a = ChatDatabase()
         b = ChatDatabase()
         a |= b
-        This adds all conversations from b into a, overwriting any with the same names.
+        This adds all conversations from b into a, overwriting any with the same name.
         """
         for name, chat in other.items():
             self.AddChat(name,chat)
