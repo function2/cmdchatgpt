@@ -481,6 +481,35 @@ print(c)
         """
         return self.UserChat(user_content, **kw)
 
+    # U,S,A shortcuts for chatting (usually from ipython prompt)
+    def U(self, user_content, **kw):
+        """
+        Shortcut for chatting (usually from ipython prompt)
+        Ask the question, print response with highlighting, return self.
+        """
+        self.User(user_content) # append User message
+        self.Send(**kw) # send conversation
+        print(self.StrTermIndex(-1))
+        return self
+    C = U # C for converse, another shortcut.
+    def S(self, system_content, **kw):
+        """
+        Shortcut for chatting (usually from ipython prompt)
+        Add system message, print response with highlighting, return self.
+        """
+        self.System(system_content) # append User message
+        self.Send(**kw) # send conversation
+        print(self.StrTermIndex(-1))
+        return self
+    def A(self, assistant_content, **kw):
+        """
+        Shortcut for chatting (usually from ipython prompt)
+        """
+        self.Assistant(assistant_content) # append User message
+        self.Send(**kw) # send conversation
+        print(self.StrTermIndex(-1))
+        return self
+
     def JSONDump(self):
         """
         Dump JSON string representation of the conversation.
@@ -551,7 +580,7 @@ class ChatDatabase:
         the number of messages in each.
         """
         s = io.StringIO()
-        s.write("ChatDatabase(")
+        s.write(f"ChatDatabase[{self.db_filename} : {self.table_name}](")
         for (name, chat) in self.items():
             s.write(f"'{name}': {len(chat)}, ")
         s.write(")")
@@ -589,10 +618,12 @@ class ChatDatabase:
         Add a chat conversation to the table. return bool
 
         This will replace the conversation if one named 'name' already exists.
+
         If you try to enter an empty conversation nothing will happen, return False
         """
+        # Don't add empty conversations.
         if not chat.messages and not chat.prompts_and_responses:
-            return
+            return False
         # try:
         self.cur.execute(f"INSERT OR REPLACE INTO {self.table_name}(name,json) VALUES (?,?)",
                          (name, chat.JSONDump()))
