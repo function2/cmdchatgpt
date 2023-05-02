@@ -482,10 +482,13 @@ print(c)
         return self.UserChat(user_content, **kw)
 
     # U,S,A shortcuts for chatting (usually from ipython prompt)
+    # For interactive use. Don't use in code to be readable.
     def U(self, user_content, **kw):
         """
         Shortcut for chatting (usually from ipython prompt)
         Ask the question, print response with highlighting, return self.
+
+        For interactive use. Don't use in code to be readable.
         """
         self.User(user_content) # append User message
         self.Send(**kw) # send conversation
@@ -496,6 +499,8 @@ print(c)
         """
         Shortcut for chatting (usually from ipython prompt)
         Add system message, print response with highlighting, return self.
+
+        For interactive use. Don't use in code to be readable.
         """
         self.System(system_content) # append User message
         self.Send(**kw) # send conversation
@@ -504,6 +509,8 @@ print(c)
     def A(self, assistant_content, **kw):
         """
         Shortcut for chatting (usually from ipython prompt)
+
+        For interactive use. Don't use in code to be readable.
         """
         self.Assistant(assistant_content) # append User message
         self.Send(**kw) # send conversation
