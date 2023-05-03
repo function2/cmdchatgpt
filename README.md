@@ -10,7 +10,7 @@ It provides:
 
 Example for use in python:
 
-```(python)
+```python
 from openai_util import *
 # Create a conversation
 c = Chat("How do exceptions work in Python 3? Give examples",temperature=.5)
