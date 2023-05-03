@@ -386,29 +386,34 @@ print(c)
     def Add(self, role, content):
         """
         Add a message to the conversation.
-        Role should be 'system', 'user', 'assistant'.
+        Role can be 'system', 'user', 'assistant'.
+
+        This does not send the prompt to the server.
         """
         self.messages.append({'role': role, 'content': content})
 
     def System(self, content):
         """
         Add a 'system' role message to the conversation.
+        This does not send the prompt to the server.
         """
         self.Add('system',content)
 
     def Assistant(self, content):
         """
         Add a 'assistant' role message to the conversation.
+        This does not send the prompt to the server.
         """
         self.Add('assistant', content)
 
     def User(self, content):
         """
         Add a 'user' role message to the conversation.
+        This does not send the prompt to the server.
         """
         self.Add('user', content)
 
-    def _Send0(self, **kw):
+    def _Send0(self, remove_last_msg_on_fail=False, **kw):
         """
         Send the conversation, returning the response. This will not
         append the response to the list of messages of the conversation.
@@ -418,20 +423,28 @@ print(c)
         kw will override any arguments in self.args (temperature, etc)
         """
         # Do deep copy to make sure prompts_and_responses are all unique.
-        args = copy.deepcopy(self.args) | kw
-        args['messages'] = copy.deepcopy(self.messages)
+        # new_prompt here contains the prompt to send to server.
+        new_prompt = copy.deepcopy(self.args) | kw
+        new_prompt['messages'] = copy.deepcopy(self.messages)
 
-        # Call the OpenAI chat API.
-        response = openai.ChatCompletion.create(**args)
+        # Send the prompt. Call the OpenAI chat API.
+        # Network / Server errors happen A LOT.
+        # Sometimes we don't want to append messages to the conversation if it fails.
+        try:
+            response = openai.ChatCompletion.create(**new_prompt)
+        except:
+            if remove_last_msg_on_fail:
+                self.pop()
+            # Just resend it to the user.
+            raise
 
         # Save the prompt and the response from the network.
-        # self.prompts_and_responses.append( (args, response) )
-        # use list instead of tuple so json.load gives equivalent.
-        self.prompts_and_responses.append( [args, response] )
+        # Use list instead of tuple so json.load gives equivalent.
+        self.prompts_and_responses.append( [new_prompt, response] )
         #
         return response
 
-    def Send(self, **kw):
+    def Send(self, remove_last_msg_on_fail=False, **kw):
         """
         Send the conversation, append the response message to the
         conversation (messages variable), and return the response.
@@ -439,19 +452,20 @@ print(c)
         response = OpenAIObject chat.completion (JSON dict)
         """
         # Append the response to the conversation.
-        response = self._Send0(**kw)
+        response = self._Send0(remove_last_msg_on_fail, **kw)
         # Need to convert this to python dict object
         # otherwise it is a JSON type of object.
         response_message = dict(response['choices'][0]['message'])
         self.messages.append(response_message)
+
         return response
 
-    def _Chat0(self, **kw):
+    def _Chat0(self, remove_last_msg_on_fail=False, **kw):
         """
         Same as Send() but return the response as a basic string
         of the content.
         """
-        response = self.Send(**kw)
+        response = self.Send(remove_last_msg_on_fail, **kw)
         return response['choices'][0]['message']['content'].strip()
 
     def UserChat(self,user_content, **kw):
@@ -462,26 +476,26 @@ print(c)
         return the response message as a string.
         """
         self.User(user_content)
-        return self._Chat0(**kw)
+        return self._Chat0(True, **kw)
     def SystemChat(self,system_content, **kw):
         """
         Same as UserChat but use 'system' as the role.
         """
         self.System(system_content)
-        return self._Chat0(**kw)
+        return self._Chat0(True, **kw)
     def AssistantChat(self,assistant_content, **kw):
         """
         Same as UserChat but use 'assistant' as the role.
         """
         self.Assistant(assistant_content, **kw)
-        return self._Chat0(**kw)
+        return self._Chat0(True, **kw)
     def Chat(self,user_content, **kw):
         """
         Shortcut for UserChat() method.
         """
         return self.UserChat(user_content, **kw)
 
-    # U,S,A shortcuts for chatting (usually from ipython prompt)
+    # U,S,A shortcuts for interactive chatting (usually from ipython prompt)
     # For interactive use. Don't use in code to be readable.
     def U(self, user_content, **kw):
         """
@@ -490,11 +504,9 @@ print(c)
 
         For interactive use. Don't use in code to be readable.
         """
-        self.User(user_content) # append User message
-        self.Send(**kw) # send conversation
-        print(self.StrTermIndex(-1))
-        return self
+        self.InteractiveChat('user',user_content,**kw)
     C = U # C for converse, another shortcut.
+
     def S(self, system_content, **kw):
         """
         Shortcut for chatting (usually from ipython prompt)
@@ -502,20 +514,23 @@ print(c)
 
         For interactive use. Don't use in code to be readable.
         """
-        self.System(system_content) # append User message
-        self.Send(**kw) # send conversation
-        print(self.StrTermIndex(-1))
-        return self
+        self.InteractiveChat('system',system_content,**kw)
+
     def A(self, assistant_content, **kw):
         """
         Shortcut for chatting (usually from ipython prompt)
 
         For interactive use. Don't use in code to be readable.
         """
-        self.Assistant(assistant_content) # append User message
-        self.Send(**kw) # send conversation
-        print(self.StrTermIndex(-1))
-        return self
+        self.InteractiveChat('assistant',assistant_content,**kw)
+
+    def InteractiveChat(self,role,content,**kw):
+        # For interactive use from ipython.
+        self.Add(role,content) # append message to conversation
+        self.Send(True, **kw) # send conversation
+        # Pretty print last question and response.
+        print(self.StrTermIndex(-2),end="")
+        print(self.StrTermIndex(-1),end="")
 
     def JSONDump(self):
         """
@@ -557,7 +572,7 @@ class ChatDatabase:
         # self.cur.close()
         self.con.close()
     def __len__(self):
-        # Could make this very slightly faster.
+        # TODO make this faster
         return len(self.GetNames())
     def __enter__(self):
         return self
@@ -581,17 +596,22 @@ class ChatDatabase:
         return self.DelChat(index)
     def __str__(self):
         """
-        returns a string containing
+        returns a string containing:
 
         the names of conversations,
         the number of messages in each.
         """
+        # TODO get SQLite db info such as last write, etc. cmd='file a.sqlite'
         s = io.StringIO()
-        s.write(f"ChatDatabase[{self.db_filename} : {self.table_name}](")
+        s.write(f"ChatDatabase[file '{self.db_filename}' : table '{self.table_name}'](")
+        # If empty (no conversations)
+        if not self:
+            s.write(')')
+            return s.getvalue()
         for (name, chat) in self.items():
             s.write(f"'{name}': {len(chat)}, ")
-        s.write(")")
-        return s.getvalue()
+        # Remove final comma
+        return s.getvalue()[:-2] + ')'
     def __repr__(self):
         return self.__str__()
 

@@ -11,17 +11,18 @@ It provides:
 Example for use in python:
 
 ```(python)
-# To create a conversation with the AI
+from openai_util import *
+# Create a conversation
 c = Chat("How do exceptions work in Python 3? Give examples",temperature=.5)
-print(c)
+print(c) # Pretty print with escapes.
 
-# To save conversations to a database (works like a dict)
+# To save conversations to a database (ChatDatabase works like a dict)
 db = ChatDatabase('a.sqlite')
 db['name'] = c
 # You can get an iterator of all conversations with
 db.items()
 db.names() # or db.keys()
-# These functions create a SQLite cursor to iterate one at a time.
+# These functions create an iterator with cursor to read one at a time.
 ```
 
 ![Image of a conversation's terminal output](https://github.com/function2/cmdchatgpt/raw/assets/screenshot_2023-03-18.png)
