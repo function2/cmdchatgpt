@@ -38,6 +38,9 @@ import os,copy,re
 import io,json
 import sqlite3 as sql
 
+# Pygments for formatting / highlighting
+import pygments
+
 # OpenAI access key
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -284,6 +287,25 @@ print(c)
         """
         return self.StrTerm()
 
+    def GetCodeHighlighted(self,lang,code):
+        """
+        Try to highlight the input code string using language lexer.
+
+        return terminal escape formatted output string,
+        or the original string if no lexer found.
+        """
+        try:
+            # try to find lexer by alias
+            lexer_class = pygments.lexers.get_lexer_by_name(lang)
+        except pygments.lexers.ClassNotFound:
+            return code
+
+        formatter = pygments.formatters.terminal256.Terminal256Formatter()
+        lexer = type(lexer_class)()
+        # Make sure no highlighting is in progress (ENDC),
+        # because code sections without a language might be highlighted by caller.
+        return self.colors.ENDC + pygments.highlight(code, lexer, formatter)
+
     # regex for responses that contain code to be highlighted.
     # We put (.|\n) here otherwise matching stops at newline.
     # We use '*?' to match the shortest string possible (in case there
@@ -350,7 +372,9 @@ print(c)
                 else:
                     # Output code header without language
                     s.write(f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}{colors.ENDC}\n")
-                s.write(f"{colors.CODE_BEGIN}{code}{colors.ENDC}")
+                # Output the code itself.
+                highlighted_code = self.GetCodeHighlighted(lang,code)
+                s.write(f"{colors.CODE_BEGIN}{highlighted_code}{colors.ENDC}")
                 s.write(f"{colors.CODE_SEP_ENDER}{colors.CODE_END_TXT}{colors.ENDC}\n")
                 #
                 last_end = m.end() # record position of end of code section.
@@ -547,6 +571,7 @@ print(c)
 ##############################################################################
 
 ##############################################################################
+# TODO IPython tab completion for conversations in ChatDatabase.
 class ChatDatabase:
     r"""
     Stores multiple OpenAI chat conversations.

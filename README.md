@@ -38,12 +38,12 @@ Example (in .profile or .bashrc):
 export OPENAI_API_KEY='sk-Example0abcdefghijklmnopqrstuvwxyz01234567890EX0'
 ```
 
-You will need the python3 `openai` module.
+You will need the python3 `openai` and `pygments` modules.
 
 If using pip:
 
 ```
-pip install openai
+pip install openai pygments
 ```
 
 To send questions that have dashes, use '--' so the argument parser doesn't
