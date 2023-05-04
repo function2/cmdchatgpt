@@ -1,4 +1,4 @@
-# cmdchatgpt: ChatGPT SQLite storage of conversations. Python and Command Line.
+# cmdchatgpt: ChatGPT SQLite storage of conversations. Terminal Highlighting. Python and Command Line.
 
 cmdchatgpt is a python / command line interface to ChatGPT
 It provides:
