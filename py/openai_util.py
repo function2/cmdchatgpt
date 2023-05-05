@@ -55,8 +55,77 @@ __author__ = "Michael Seyfert"
 __email__ = "michael@codesand.org"
 __license__ = "GNU Affero General Public License version 3"
 __copyright__ = "Copyright 2023 {}".format(__author__)
+##############################################################################
+# colors
+
+# These colors look OK on a black background in my terminal.
+# TODO put these in config file?
+class colors:
+    """
+    Specifies ANSI terminal colors and highlighting.
+    """
+    ROLE_HEADER = "▪"
+    ROLE_HEADER_COLOR = '\033[93m' # yellow
+
+    ENDC = '\033[0m'
+    # colors to use for role header, and content for each.
+    USER_ROLE = '\033[94m' # blue
+    # USER_CONTENT = '\033[3m' + '\x1b[44m\x1b[97m' # italic + blue background
+    USER_CONTENT = '\033[3m' # italic
+
+    ASSISTANT_ROLE = '\033[93m' # yellow
+    ASSISTANT_CONTENT = ''
+
+    SYSTEM_ROLE = '\033[91m' # red
+    SYSTEM_CONTENT = '\033[1m' + '\x1b[100m' # bold + grey background
+    # SYSTEM_CONTENT = '\x1b[100m' # grey background
+
+    # At the beginning of a code section, switch highlighting.
+    # CODE_BEGIN = ENDC + '\u001b[32m' # green
+    CODE_BEGIN = '\033[34m' # dark blue
+    # CODE_BEGIN = '\033[01;34m' # blue
+    # At the end of a code section, restart standard highlighting.
+    # CODE_END = ENDC + ASSISTANT_CONTENT
+
+    # Separator before a code section begins.
+    # ChatGPT uses ``` , but we can replace it with regex
+    CODE_START_TXT = '```'
+    CODE_END_TXT = '```'
+    # CODE_START_TXT = '「'
+    # CODE_END_TXT = ' 」'
+    # CODE_SEP_STARTER = '\033[38;2;139;69;19m'
+    CODE_SEP_STARTER = '\033[01;32m' # green
+    CODE_SEP_ENDER = CODE_SEP_STARTER
+    # Highlights the language name of a code section.
+    # CODE_SEP_LANG = '\033[4m' + '\033[38;5;170m' # underline + orchid
+    CODE_SEP_LANG = '\033[0;31m'+  '\033[4m' # underline + darker red
+    # Highlighting keywords within text sections.
+    KEYWORD_BEGIN = '\033[96m'
+
+class nocolors:
+    """
+    Specifies `colors` used for non-color output. No escape strings.
+    """
+    ROLE_HEADER = "*"
+    ROLE_HEADER_COLOR = ''
+    ENDC = ''
+    USER_ROLE = ''
+    USER_CONTENT = ''
+    ASSISTANT_ROLE = ''
+    ASSISTANT_CONTENT = ''
+    SYSTEM_ROLE = ''
+    SYSTEM_CONTENT = ''
+    CODE_BEGIN = ''
+    CODE_START_TXT = '```'
+    CODE_END_TXT = '```'
+    CODE_SEP_STARTER = ''
+    CODE_SEP_ENDER = CODE_SEP_STARTER
+    CODE_SEP_LANG = ''
+    KEYWORD_BEGIN = ''
 
 ##############################################################################
+##############################################################################
+# TODO allow add (+) operations to combine conversations.
 class Chat:
     """
     OpenAI chat request
@@ -90,71 +159,6 @@ class Chat:
         # Add a user ID. Usually this should be hashed email or login.
         # 'user' : 'user123456',
     }
-
-    # These colors look OK on a black background in my terminal.
-    # TODO put these in config file?
-    class colors:
-        """
-        Specifies ANSI terminal colors and highlighting.
-        """
-        ROLE_HEADER = "▪"
-        ROLE_HEADER_COLOR = '\033[93m' # yellow
-
-        ENDC = '\033[0m'
-        # colors to use for role header, and content for each.
-        USER_ROLE = '\033[94m' # blue
-        # USER_CONTENT = '\033[3m' + '\x1b[44m\x1b[97m' # italic + blue background
-        USER_CONTENT = '\033[3m' # italic
-
-        ASSISTANT_ROLE = '\033[93m' # yellow
-        ASSISTANT_CONTENT = ''
-
-        SYSTEM_ROLE = '\033[91m' # red
-        SYSTEM_CONTENT = '\033[1m' + '\x1b[100m' # bold + grey background
-        # SYSTEM_CONTENT = '\x1b[100m' # grey background
-
-        # At the beginning of a code section, switch highlighting.
-        # CODE_BEGIN = ENDC + '\u001b[32m' # green
-        CODE_BEGIN = '\033[34m' # dark blue
-        # CODE_BEGIN = '\033[01;34m' # blue
-        # At the end of a code section, restart standard highlighting.
-        # CODE_END = ENDC + ASSISTANT_CONTENT
-
-        # Separator before a code section begins.
-        # ChatGPT uses ``` , but we can replace it with regex
-        CODE_START_TXT = '```'
-        CODE_END_TXT = '```'
-        # CODE_START_TXT = '「'
-        # CODE_END_TXT = ' 」'
-        # CODE_SEP_STARTER = '\033[38;2;139;69;19m'
-        CODE_SEP_STARTER = '\033[01;32m' # green
-        CODE_SEP_ENDER = CODE_SEP_STARTER
-        # Highlights the language name of a code section.
-        # CODE_SEP_LANG = '\033[4m' + '\033[38;5;170m' # underline + orchid
-        CODE_SEP_LANG = '\033[0;31m'+  '\033[4m' # underline + darker red
-        # Highlighting keywords within text sections.
-        KEYWORD_BEGIN = '\033[96m'
-
-    class nocolors:
-        """
-        Specifies `colors` used for non-color terminal. No ANSI escape strings.
-        """
-        ROLE_HEADER = "*"
-        ROLE_HEADER_COLOR = ''
-        ENDC = ''
-        USER_ROLE = ''
-        USER_CONTENT = ''
-        ASSISTANT_ROLE = ''
-        ASSISTANT_CONTENT = ''
-        SYSTEM_ROLE = ''
-        SYSTEM_CONTENT = ''
-        CODE_BEGIN = ''
-        CODE_START_TXT = '[[['
-        CODE_END_TXT = ']]]'
-        CODE_SEP_STARTER = ''
-        CODE_SEP_ENDER = CODE_SEP_STARTER
-        CODE_SEP_LANG = ''
-        KEYWORD_BEGIN = ''
 
     def __init__(self, user_content=None, **kwargs):
         r"""
@@ -250,28 +254,31 @@ print(c)
         """
         return self.messages.pop(index)
 
-    def StrTerm(self):
+    def StrTerm(self, color = colors):
         """
         Return string representation of the conversation,
-        use ANSI escape sequences to color the output for terminal.
+        uses escape sequences to color the output for terminal.
+
+        color argument specifies colors class to use.
+        color=nocolors for no escape output
+
         returns str
         """
-        colors = self.colors
 
         if not self:
             return "<empty conversation>"
 
         # Build return string.
         s = io.StringIO()
-        # s = f"{colors.HEADER}AI Chat conversation:{colors.ENDC}\n"
+        # s = f"{color.HEADER}AI Chat conversation:{color.ENDC}\n"
         for m in self.messages:
             role = m['role']
             content = m['content'].strip()
-            s.write(self.GetContentStrTerm(role,content))
-        # s += f"{colors.ENDER}End of conversation{colors.ENDC}\n"
+            s.write(self.GetContentStrTerm(role,content,color))
+        # s += f"{color.ENDER}End of conversation{color.ENDC}\n"
         return s.getvalue()
 
-    def StrTermIndex(self,index):
+    def StrTermIndex(self,index, color = colors):
         """
         Return string representation of content in the conversation.
         this is self.messages[index]
@@ -279,7 +286,7 @@ print(c)
         """
         role = self.messages[index]['role']
         content = self.messages[index]['content']
-        return self.GetContentStrTerm(role,content)
+        return self.GetContentStrTerm(role,content,color)
 
     def __str__(self):
         """
@@ -291,20 +298,37 @@ print(c)
         """
         Try to highlight the input code string using language lexer.
 
-        return terminal escape formatted output string,
-        or the original string if no lexer found.
+        return escape formatted output string.
         """
         try:
-            # try to find lexer by alias
+            # Try to find a lexer by alias.
             lexer_class = pygments.lexers.get_lexer_by_name(lang)
         except pygments.lexers.ClassNotFound:
-            return code
-
+            # No lexer found with that alias, try to guess it.
+            return self.GetCodeHighlightedNoLang(code)
         formatter = pygments.formatters.terminal256.Terminal256Formatter()
         lexer = type(lexer_class)()
         # Make sure no highlighting is in progress (ENDC),
         # because code sections without a language might be highlighted by caller.
-        return self.colors.ENDC + pygments.highlight(code, lexer, formatter)
+        return colors.ENDC + pygments.highlight(code, lexer, formatter)
+
+    def GetCodeHighlightedNoLang(self,code):
+        """
+        Try to guess the language used, return highlighted code string.
+
+        return escape formatted output string, or the original string if
+        no lexer was found.
+        """
+        # TODO pygments guesser is actually pretty bad.
+        try:
+            # Try to guess lexer
+            lexer_class = pygments.lexers.guess_lexer(code)
+        except pygments.lexers.ClassNotFound:
+            # return original code if none found.
+            return code
+        formatter = pygments.formatters.terminal256.Terminal256Formatter()
+        lexer = type(lexer_class)()
+        return colors.ENDC + pygments.highlight(code, lexer, formatter)
 
     # regex for responses that contain code to be highlighted.
     # We put (.|\n) here otherwise matching stops at newline.
@@ -330,7 +354,7 @@ print(c)
     # regex to highlight keywords within back-ticks `keyword`
     keyword_regex = re.compile(r'`(.+?)`')
 
-    def GetContentStrTerm(self,role,content,colors = colors):
+    def GetContentStrTerm(self,role,content,color = colors):
         """
         Return string representation of one role/content.
         use ANSI escape sequences to color the output for terminal.
@@ -338,19 +362,20 @@ print(c)
         """
         s = io.StringIO()
         # Print 'asterisk' for role.
-        s.write(f"{colors.ROLE_HEADER_COLOR}{colors.ROLE_HEADER}{colors.ENDC} ")
+        s.write(f"{color.ROLE_HEADER_COLOR}{color.ROLE_HEADER}{color.ENDC} ")
         # Print role and content.
-        # Use different colors, highlighting depending on role.
+        # Use different color, highlighting depending on role.
+        # TODO put in separate functions.
         if role == 'user':
-            s.write(f"{colors.USER_ROLE}{role}{colors.ENDC}\n")
-            s.write(f"{colors.USER_CONTENT}{content}{colors.ENDC}\n")
+            s.write(f"{color.USER_ROLE}{role}{color.ENDC}\n")
+            s.write(f"{color.USER_CONTENT}{content}{color.ENDC}\n")
 
         elif role == 'assistant':
             # This replacement string highlights keyword, and then
             # restarts assistant highlighting.
-            keyword_sub_str = f"`{colors.ENDC}{colors.KEYWORD_BEGIN}\\1{colors.ENDC}{colors.ASSISTANT_CONTENT}`"
+            keyword_sub_str = f"`{color.ENDC}{color.KEYWORD_BEGIN}\\1{color.ENDC}{color.ASSISTANT_CONTENT}`"
 
-            s.write(f"{colors.ASSISTANT_ROLE}{role}{colors.ENDC}\n")
+            s.write(f"{color.ASSISTANT_ROLE}{role}{color.ENDC}\n")
 
             # Look for code sections in content (for syntax highlighting)
             last_end = 0 # Position of end of last code section.
@@ -364,28 +389,29 @@ print(c)
                 # Highlight keywords in this text section.
                 newbefore = self.keyword_regex.sub(keyword_sub_str,before)
 
-                s.write(f"{colors.ASSISTANT_CONTENT}{newbefore}{colors.ENDC}")
+                s.write(f"{color.ASSISTANT_CONTENT}{newbefore}{color.ENDC}")
                 # code section
                 if lang:
                     # Output language in parenthesis if given.
-                    s.write(f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}({colors.ENDC}{colors.CODE_SEP_LANG}{lang}{colors.ENDC}{colors.CODE_SEP_STARTER}){colors.ENDC}\n")
+                    s.write(f"{color.CODE_SEP_STARTER}{color.CODE_START_TXT}({color.ENDC}{color.CODE_SEP_LANG}{lang}{color.ENDC}{color.CODE_SEP_STARTER}){color.ENDC}\n")
                 else:
-                    # Output code header without language
-                    s.write(f"{colors.CODE_SEP_STARTER}{colors.CODE_START_TXT}{colors.ENDC}\n")
+                    # No language given.
+                    # Output code header without language.
+                    s.write(f"{color.CODE_SEP_STARTER}{color.CODE_START_TXT}{color.ENDC}\n")
                 # Output the code itself.
                 highlighted_code = self.GetCodeHighlighted(lang,code)
-                s.write(f"{colors.CODE_BEGIN}{highlighted_code}{colors.ENDC}")
-                s.write(f"{colors.CODE_SEP_ENDER}{colors.CODE_END_TXT}{colors.ENDC}\n")
+                s.write(f"{color.CODE_BEGIN}{highlighted_code}{color.ENDC}")
+                s.write(f"{color.CODE_SEP_ENDER}{color.CODE_END_TXT}{color.ENDC}\n")
                 #
                 last_end = m.end() # record position of end of code section.
-            # Print last text.
+            # Print last text (after final code section).
             # last_text = content[last_end:]
             last_text = self.keyword_regex.sub(keyword_sub_str, content[last_end:])
-            s.write(f"{colors.ASSISTANT_CONTENT}{last_text}{colors.ENDC}\n")
+            s.write(f"{color.ASSISTANT_CONTENT}{last_text}{color.ENDC}\n")
 
         elif role == 'system':
-            s.write(f"{colors.SYSTEM_ROLE}{role}{colors.ENDC}\n")
-            s.write(f"{colors.SYSTEM_CONTENT}{content}{colors.ENDC}\n")
+            s.write(f"{color.SYSTEM_ROLE}{role}{color.ENDC}\n")
+            s.write(f"{color.SYSTEM_CONTENT}{content}{color.ENDC}\n")
 
         return s.getvalue()
 
@@ -572,6 +598,8 @@ print(c)
 
 ##############################################################################
 # TODO IPython tab completion for conversations in ChatDatabase.
+# TODO make 'history' to retrieve all recently used conversations regardless if
+# they were saved or not.
 class ChatDatabase:
     r"""
     Stores multiple OpenAI chat conversations.
