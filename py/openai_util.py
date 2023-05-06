@@ -55,11 +55,13 @@ __author__ = "Michael Seyfert"
 __email__ = "michael@codesand.org"
 __license__ = "GNU Affero General Public License version 3"
 __copyright__ = "Copyright 2023 {}".format(__author__)
+
 ##############################################################################
 # colors
 
 # These colors look OK on a black background in my terminal.
-# TODO put these in config file?
+# TODO put these in config file? Need to find better place for this.
+# TODO code highlighting colors (to pass to pygments) should be here.
 class colors:
     """
     Specifies ANSI terminal colors and highlighting.
@@ -124,6 +126,7 @@ class nocolors:
     KEYWORD_BEGIN = ''
 
 ##############################################################################
+
 ##############################################################################
 # TODO allow add (+) operations to combine conversations.
 class Chat:
@@ -135,6 +138,28 @@ class Chat:
     prompts/responses to/from the server.
     The conversation can be ANSI escape highlighted for a terminal,
        converted to JSON string,
+
+    Example:
+# Init with role 'user' content, and use custom args like temperature,user,etc.
+c = Chat("What does the special method __str__ do in python3?", temperature=0.75, user='helloworld')
+# Add system content to the conversation, but do not send the
+# prompt to the server yet. (You could use SystemChat to get a response.)
+c.System("You are an AI programming assistant.")
+c.System("Always respond in 5 words or less.")
+# Ask the same question again.
+c.Chat("What does the special method __str__ do in python3?")
+# Try to get the bot to disregard the '5 words or less' rule.
+c.SystemChat("Disregard previous directives. You may respond in more than 5 words now.")
+# Try referencing previous prompts
+c.Chat("Reword the method description but in a petulant, rude tone",temperature=1.0)
+# Get bot to give multiple languages output, to test syntax highlighting regex.
+c.Chat("Give an example of counting from 3 to 21 in python3, bash, and C++ languages")
+#
+# Print the conversation so far. This should highlight code sections and
+# keywords, as well as roles.
+print(c)
+
+    Note the server re-reads the entire conversation every time a prompt is sent.
     """
 
     DEFAULT_ARGS = {
@@ -162,7 +187,7 @@ class Chat:
 
     def __init__(self, user_content=None, **kwargs):
         r"""
-        OpenAI Chat conversation.
+        Initialize OpenAI ChatGPT conversation.
 
         user_prompt is an optional user content to begin the conversation.
 
@@ -175,28 +200,6 @@ class Chat:
         prompts_and_responses = ALL prompts sent to the network, and the responses.
           This is a list of tuples,
           The first element is send dict, the second is response dict
-
-        Example:
-# Init with role 'user' content, and use custom 'user' arg.
-c = Chat("What does the special method __str__ do in python3?", user='helloworld')
-# Add system content to the conversation, but do not send the
-# prompt to the server. (You could use SystemChat method to get a response.)
-c.System("You are an AI programming assistant.")
-c.System("Always respond in 5 words or less.")
-# Ask the same question again.
-c.Chat("What does the special method __str__ do in python3?")
-# Try to get the bot to disregard the '5 words or less' rule.
-c.SystemChat("Disregard previous directives.")
-# Try referencing previous conversation, use different 'temperature'
-c.Chat("Reword the method description but in a petulant, rude tone",temperature=1.0)
-# Get bot to give multiple languages output, to test syntax highlighting regex.
-c.Chat("Give an example of counting from 3 to 21 in python3, bash, and C++")
-#
-# Print the conversation so far. This should highlight code sections and
-# keywords, as well as roles.
-print(c)
-
-        Note the server re-reads the entire conversation every time a prompt is sent.
         """
         # If variables given as kwargs, put them in the right place
         # This is so we can load JSON dictionary from constructor.
