@@ -23,8 +23,8 @@ store conversations and chat with AI.
 from .chatbots.openai_util import Chat
 
 import os,sys
-import argparse
-import pprint
+import io,json
+import sqlite3
 
 __uri__ = "https://github.com/function2/cmdchatgpt"
 __version__ = "0.1"
@@ -66,12 +66,12 @@ class ChatDatabase:
     def __init__(self,db_filename, table_name='chats'):
         self.db_filename = db_filename
         self.table_name = table_name
-        self.con = sql.connect(db_filename)
+        self.con = sqlite3.connect(db_filename)
         self.cur = self.con.cursor()
         try:
             self.cur.execute(f"CREATE TABLE {self.table_name}(name TEXT PRIMARY KEY,json TEXT)")
             self.con.commit()
-        except sql.OperationalError as e:
+        except sqlite3.OperationalError as e:
             # Assume the table already exists.
             # print("Unable to create table: OperationalError: {}".format(e))
             pass
