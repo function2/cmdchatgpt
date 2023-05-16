@@ -275,6 +275,7 @@ print(c)
         lexer = type(lexer_class)()
         return default_colors.ENDC + pygments.highlight(code, lexer, formatter)
 
+    ####################
     # regex for responses that contain code to be highlighted.
     # We put (.|\n) here otherwise matching stops at newline.
     # We use '*?' to match the shortest string possible (in case there
@@ -294,11 +295,13 @@ print(c)
     #  (just in case ``` could be used in the code or text itself.)
     # code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n))```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n)```')
     # Same but allow whitespace before the ``` and ending ```
-    # TODO make these regex static
-    code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n)\s*)```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n\s*)```')
 
+    # These regex are static class variables and will not be copied to
+    # JSON dump of the class.
+    code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n)\s*)```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n\s*)```')
     # regex to highlight keywords within back-ticks `keyword`
     keyword_regex = re.compile(r'`(.+?)`')
+    ####################
 
     def GetContentStrTerm(self,role,content,colors = black_background_colors):
         """
