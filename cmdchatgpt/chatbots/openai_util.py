@@ -34,7 +34,7 @@ ChatDatabase()
     Works similar to a dict()
 """
 
-from cmdchatgpt.colors import black_background_colors,nocolors
+from ..colors import black_background_colors,nocolors
 default_colors=black_background_colors
 
 import os,copy,re
@@ -48,7 +48,6 @@ import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 ##############################################################################
-# TODO allow add (+) operations to combine conversations.
 class Chat:
     """
     OpenAI chat request
@@ -168,6 +167,26 @@ print(c)
         """
         return self.messages == o.messages
 
+    def __add__(self,other):
+        """
+        Add two conversations together. This will take the union of default args
+        from both conversations, with the second operand given priority.
+        """
+        r = self.__class__()
+        r.args = self.args | other.args
+        r.messages = self.messages + other.messages
+        r.prompts_and_responses = self.prompts_and_responses + other.prompts_and_responses
+        return r
+
+    def __iadd__(self,other):
+        """
+        see __add__
+        """
+        self.args |= other.args
+        self.messages += other.messages
+        self.prompts_and_responses += other.prompts_and_responses
+        return self
+
     def pop(self,index = -1):
         """
         Remove and return conversation message at index (default last).
@@ -275,6 +294,7 @@ print(c)
     #  (just in case ``` could be used in the code or text itself.)
     # code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n))```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n)```')
     # Same but allow whitespace before the ``` and ending ```
+    # TODO make these regex static
     code_regex = re.compile(r'(?P<before>(?:.|\n)*?(?:^|\n)\s*)```(?P<lang>.*)\n(?P<code>(?:.|\n)*?\n\s*)```')
 
     # regex to highlight keywords within back-ticks `keyword`
@@ -345,18 +365,19 @@ print(c)
         """
         This will return the number of each role in the conversation, along with
         the total number of characters in the content.
+        Also gives default args used (such as temperature, model, etc)
         """
         counts = [0,0,0] # user, assistant, system
         char_counts = [0,0,0]
         idx = {'user':0, 'assistant':1, 'system':2}
-        # u,a,s = 0,0,0
-        # cu,ca,cs = 0,0,0
         for k in self.messages:
             index = idx[k['role']]
             counts[index] += 1
             char_counts[index] += len(k['content'])
+        #
         s = io.StringIO()
         s.write(f"{self.__module__}.{self.__class__.__name__} @{hex(id(self))}({counts[0]} user {char_counts[0]} chars, {counts[1]} assistant {char_counts[1]} chars, {counts[2]} system {char_counts[2]} chars)[total = {sum(char_counts)} chars]")
+        s.write(f" default args = {self.args}")
         return s.getvalue()
 
     def Add(self, role, content):
