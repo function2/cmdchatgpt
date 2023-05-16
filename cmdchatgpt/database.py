@@ -13,15 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# For now we only have OpenAI chatbot.
-from .chatbots.openai_util import Chat
-
 import os,sys
 import io,json
 import sqlite3
 
+from .chatbots.openai_util import ChatOpenAI as Chat
+
 __all__ = [
-    'Chat',
     'ChatDatabase',
 ]
 
@@ -163,10 +161,13 @@ class ChatDatabase:
     def AddChats(self,name_chat_pairs):
         """
         """
+        # TODO
     def GetChat(self, name):
         """
         Get chat conversation with name 'name'
         """
+        # TODO this should determine chat class type and return the
+        # correct vendor class.
         self.cur.execute(f"SELECT json FROM {self.table_name} WHERE name = ?", (name,))
         rows = self.cur.fetchall()
         if not rows:

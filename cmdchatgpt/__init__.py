@@ -23,12 +23,17 @@ __uri__ = "https://github.com/function2/cmdchatgpt"
 __version__ = "0.1"
 
 from .database import *
+# For now we only have OpenAI chatbot.
+from .chatbots.openai_util import *
 
 __all__ = [
+    'Chat', # default Chat bot
     'GPT',
     'gpt',
-] + database.__all__
+] + database.__all__ + chatbots.openai_util.__all__
 
+# For now we only have OpenAI
+Chat = ChatOpenAI
 
 def GPT(prompt, **kwargs):
     """

@@ -47,8 +47,12 @@ import pygments
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+__all__ = [
+    'ChatOpenAI',
+]
+
 ##############################################################################
-class Chat:
+class ChatOpenAI:
     """
     OpenAI chat request
     API documentation: https://platform.openai.com/docs/guides/chat
@@ -60,7 +64,7 @@ class Chat:
 
     Example:
 # Init with role 'user' content, and use custom args like temperature,user,etc.
-c = Chat("What does the special method __str__ do in python3?", temperature=0.75, user='helloworld')
+c = ChatOpenAI("What does the special method __str__ do in python3?", temperature=0.75, user='helloworld')
 # Add system content to the conversation, but do not send the
 # prompt to the server yet. (You could use SystemChat to get a response.)
 c.System("You are an AI programming assistant.")
