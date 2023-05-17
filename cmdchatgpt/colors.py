@@ -36,13 +36,14 @@ class black_background_colors:
     # colors to use for role header, and content for each.
     USER_ROLE = '\033[94m' # blue
     # USER_CONTENT = '\033[3m' + '\x1b[44m\x1b[97m' # italic + blue background
-    USER_CONTENT = '\033[3m' # italic
+    USER_CONTENT = '\033[3m' + '\033[47m' # italic + light grey background
 
     ASSISTANT_ROLE = '\033[93m' # yellow
     ASSISTANT_CONTENT = ''
 
     SYSTEM_ROLE = '\033[91m' # red
-    SYSTEM_CONTENT = '\033[1m' + '\x1b[100m' # bold + grey background
+    SYSTEM_CONTENT = '\033[1m' # bold
+    # SYSTEM_CONTENT = '\033[1m' + '\x1b[100m' # bold + grey background
     # SYSTEM_CONTENT = '\x1b[100m' # grey background
 
     # At the beginning of a code section, switch highlighting.
