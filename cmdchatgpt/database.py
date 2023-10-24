@@ -47,19 +47,40 @@ class ChatDatabase:
             # Assume the table already exists.
             # print("Unable to create table: OperationalError: {}".format(e))
             pass
+
     def __del__(self):
-        # Note sure if this is necessary but do it anyways.
+        """
+        ChatDatabase Destructor
+        This should commit the db and close all connections.
+        """
         # self.con.commit()
         # self.cur.close()
-        self.con.close()
+        # self.con.close()
+
     def __len__(self):
-        # TODO make this faster
-        return len(self.GetNames())
+        """
+        Returns the number of conversations stored in the database table_name
+        """
+        self.cur.execute(f"SELECT COUNT(*) from {self.table_name}")
+        rows = self.cur.fetchall()
+        return rows[0][0]
+
+    def __bool__(self):
+        """
+        Return True if this chat database has at least one conversation stored in it.
+        """
+        # Make an iterator and see if there is at least one item.
+        # This prevents us from having to load the entire database.
+        self.cur.execute(f"SELECT EXISTS(SELECT 1 from {self.table_name})")
+        rows = self.cur.fetchall()
+        return bool(rows[0][0])
+
     def __enter__(self):
         return self
     def __exit__(self, exc_type, exc_value, exc_traceback):
         # Just call __del__ for now.
         self.__del__()
+
     def __getitem__(self,index):
         """
         Get conversation with name 'index'
@@ -75,6 +96,7 @@ class ChatDatabase:
         Same as DelChat(index)
         """
         return self.DelChat(index)
+
     def __str__(self):
         """
         returns a string containing:
@@ -172,7 +194,7 @@ class ChatDatabase:
         self.cur.execute(f"SELECT json FROM {self.table_name} WHERE name = ?", (name,))
         rows = self.cur.fetchall()
         if not rows:
-            return Chat()
+            raise KeyError(name)
         return Chat(**json.loads(rows[0][0]))
     def GetNames(self):
         """
