@@ -34,7 +34,7 @@ ChatDatabase()
     Works similar to a dict()
 """
 
-from ..colors import black_background_colors,nocolors
+from .colors import black_background_colors,nocolors
 default_colors=black_background_colors
 
 import os,copy,re

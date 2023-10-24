@@ -24,15 +24,14 @@ __version__ = "0.1"
 
 from .database import *
 # For now we only have OpenAI chatbot.
-from .chatbots.openai_util import *
+from .openai_util import *
 
 __all__ = [
     'Chat', # default Chat bot
-    'GPT',
-    'gpt',
-] + database.__all__ + chatbots.openai_util.__all__
+    'GPT','gpt',
+] + database.__all__ + openai_util.__all__
 
-# For now we only have OpenAI
+# For now we only have OpenAI, make it the default.
 Chat = ChatOpenAI
 
 def GPT(prompt, **kwargs):
@@ -48,4 +47,3 @@ def GPT(prompt, **kwargs):
     print(conversation)
     return conversation
 gpt = GPT
-

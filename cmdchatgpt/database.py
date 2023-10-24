@@ -17,7 +17,8 @@ import os,sys
 import io,json
 import sqlite3
 
-from .chatbots.openai_util import ChatOpenAI as Chat
+# For now assume all conversations are OpenAI. Need way to switch.
+from .openai_util import ChatOpenAI as Chat
 
 __all__ = [
     'ChatDatabase',
