@@ -608,7 +608,7 @@ class ImageOpenAI:
             url = k['url']
             filename = tempfile.NamedTemporaryFile(
                 dir = download_dir,
-                prefix = f'{prefix}_openai_{count}_',
+                prefix = f'{prefix}_openai_{str(count).zfill(2)}_',
                 suffix = f'.png'
             ).name
             print("Downloading ",url)
