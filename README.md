@@ -7,6 +7,7 @@ It provides:
  - Storage of many conversations in a SQLite database.
  - Create templates or copy a conversation.
  - Command line use of ChatGPT.
+ - Image creation and downloading.
 
 Example for use in python:
 
