@@ -40,6 +40,10 @@ default_colors=black_background_colors
 import os,copy,re
 import io,json
 
+# for downloading images
+import tempfile
+import urllib.request
+
 # Pygments for formatting / highlighting
 import pygments
 
@@ -49,6 +53,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 __all__ = [
     'ChatOpenAI',
+    'ImageOpenAI',
 ]
 
 ##############################################################################
@@ -83,8 +88,25 @@ c.Chat("Give an example of counting from 3 to 21 in python3, bash, and C++ langu
 print(c)
 
     Note the server re-reads the entire conversation every time a prompt is sent.
-    """
 
+    Variables:
+
+    args = default args sent to the server when chatting.
+        args contains things like the model, temperature, user, etc.
+        args used in the constructor will be used for all send operations unless
+        overridden or changed.
+
+        self.args does not contain 'messages', but all other default params
+        to send to the server when communicating. (such as temperature, etc)
+
+
+    messages = List of messages in the conversation so far.
+        This is a list of dict.
+
+    prompts_and_responses = ALL prompts sent to the network, and the responses.
+        This is a list of tuples,
+        The first element is send dict, the second is response dict
+    """
     DEFAULT_ARGS = {
         # model
         # https://platform.openai.com/docs/models/overview
@@ -109,29 +131,15 @@ print(c)
     }
 
     def __init__(self, user_content=None, **kwargs):
-        r"""
+        """
         Initialize OpenAI ChatGPT conversation.
 
-        user_prompt is an optional user content to begin the conversation.
+        user_content is an optional user content to begin the conversation.
 
-        args = default args sent to the server when chatting.
-         args contains things like the model, temperature, user, etc.
-         args used in the constructor will be used for all send operations
-           unless overridden or changed.
-
-        messages = List of messages in the conversation so far.
-          This is a list of dict.
-
-        prompts_and_responses = ALL prompts sent to the network, and the responses.
-          This is a list of tuples,
-          The first element is send dict, the second is response dict
         """
         # If variables given as kwargs, put them in the right place
         # This is so we can load JSON dictionary from constructor.
         # See JSONDump
-
-        # self.args does not contain 'messages', but all other default params
-        # to send to the server when communicating. (such as temperature, etc)
 
         # Override default args with any given in dictionary kwargs['args']
         # Typically this only happens if loading from
@@ -142,7 +150,7 @@ print(c)
         # prompts_and_responses = All prompts sent to the AI and responses.
         self.prompts_and_responses = kwargs.pop('prompts_and_responses',[])
 
-        # We 'pop' all of the above from kwargs so that
+        # We 'pop' all of the Above from kwargs so that
         # any overriding arguments can be given directly in kwargs
         self.args |= kwargs
 
@@ -548,4 +556,56 @@ print(c)
         """
         # Use the compact form for separators.
         return json.dumps(self.__dict__, separators=(',',':'))
+##############################################################################
+
+##############################################################################
+class ImageOpenAI:
+    """
+    OpenAI image request
+    API documentation: https://platform.openai.com/docs/guides/images
+
+    This will download the image results if desired.
+    """
+    DEFAULT_ARGS = {
+        'n' : 1,
+        'size' : "1024x1024",
+    }
+
+    def __init__(self, prompt = None,**kwargs):
+        """
+        Initialize OpenAI image prompt.
+        """
+        self.args = self.DEFAULT_ARGS | kwargs
+        if not prompt:
+            prompt = kwargs.pop('prompt')
+        self.args['prompt'] = prompt
+
+        # Send to server.
+        self.response = openai.Image.create(**self.args)
+        # image_url = response['data'][0]['url']
+        # print(repr(response))
+        # print(image_url)
+
+    def Download(self, download_dir, prefix):
+        """
+        Download image responses to given directory.
+        prefix is the filename prefix to use.
+
+        Returns a list of all filenames saved.
+        """
+        filenames = []
+        count = 0
+        for k in self.response['data']:
+            count += 1
+            url = k['url']
+            filename = tempfile.NamedTemporaryFile(
+                dir = download_dir,
+                prefix = f'{prefix}_openai_{count}_',
+                suffix = f'.png'
+            ).name
+            print("Downloading ",url)
+            local_filename, headers = urllib.request.urlretrieve(url, filename)
+            print("→",local_filename)
+            filenames.append(local_filename)
+        return filenames
 ##############################################################################

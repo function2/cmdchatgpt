@@ -28,11 +28,13 @@ from .openai_util import *
 
 __all__ = [
     'Chat', # default Chat bot
+    'Image', # default Image generation
     'GPT','gpt',
 ] + database.__all__ + openai_util.__all__
 
 # For now we only have OpenAI, make it the default.
 Chat = ChatOpenAI
+Image = ImageOpenAI
 
 def GPT(prompt, **kwargs):
     """

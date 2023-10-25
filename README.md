@@ -1,28 +1,34 @@
 # cmdchatgpt: ChatGPT SQLite storage of conversations. Terminal Highlighting. Python and Command Line.
 
-cmdchatgpt is a python / command line interface to ChatGPT
+cmdchatgpt is a python / command line interface to ChatGPT bots
 It provides:
 
+ - Syntax Highlighting for terminal output of conversations.
  - Storage of many conversations in a SQLite database.
- - Syntax Highlighting using ANSI escapes for terminal output of conversations.
  - Create templates or copy a conversation.
  - Command line use of ChatGPT.
 
 Example for use in python:
 
 ```python
-from openai_util import *
+from cmdchatgpt import *
 # Create a conversation
-c = Chat("How do exceptions work in Python 3? Give examples",temperature=.5)
+c = Chat("How do exceptions work in Python 3? Give examples", temperature=.5)
 print(c) # Pretty print with escapes.
 
-# To save conversations to a database (ChatDatabase works like a dict)
+# To save conversations to a database
 db = ChatDatabase('a.sqlite')
+# ChatDatabase works like a dict
 db['name'] = c
 # You can get an iterator of all conversations with
 db.items()
 db.names() # or db.keys()
 # These functions create an iterator with cursor to read one at a time.
+
+# To download images
+i = Image("A balloon in a flower field",n=10)
+i.Download('/tmp', 'balloon')
+# This will save 10 images to the tmp directory.
 ```
 
 ![Image of a conversation's terminal output](https://github.com/function2/cmdchatgpt/raw/assets/screenshot_2023-03-18.png)
