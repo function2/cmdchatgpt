@@ -565,6 +565,10 @@ class ImageOpenAI:
     API documentation: https://platform.openai.com/docs/guides/images
 
     This will download the image results if desired.
+
+    Example:
+    # This will download 10 images and place them in /tmp
+    Image("A cat in a cityscape futuristic cyberpunk",n=10).Download('/tmp', 'cat_punk')
     """
     DEFAULT_ARGS = {
         'n' : 1,
@@ -589,9 +593,13 @@ class ImageOpenAI:
     def Download(self, download_dir, prefix):
         """
         Download image responses to given directory.
-        prefix is the filename prefix to use.
 
-        Returns a list of all filenames saved.
+        download_dir = directory to store the images.
+        prefix = the filename prefix to use.
+
+        returns a list of all filenames saved.
+
+        Images will have temp strings to prevent filename collisions.
         """
         filenames = []
         count = 0

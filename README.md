@@ -27,8 +27,8 @@ db.names() # or db.keys()
 # These functions create an iterator with cursor to read one at a time.
 
 # To download images
-i = Image("A balloon in a flower field",n=10)
-i.Download('/tmp', 'balloon')
+i = Image("A cat in a cityscape futuristic cyberpunk",n=10)
+i.Download('/tmp', 'cat_punk')
 # This will save 10 images to the tmp directory.
 ```
 
