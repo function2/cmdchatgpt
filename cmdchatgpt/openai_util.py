@@ -586,13 +586,10 @@ class ImageOpenAI:
 
         # Send to server.
         self.response = openai.Image.create(**self.args)
-        # image_url = response['data'][0]['url']
-        # print(repr(response))
-        # print(image_url)
 
     def Download(self, download_dir, prefix):
         """
-        Download image responses to given directory.
+        Download image responses.
 
         download_dir = directory to store the images.
         prefix = the filename prefix to use.

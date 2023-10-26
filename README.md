@@ -33,6 +33,7 @@ i.Download('/tmp', 'cat_punk')
 ```
 
 ![Image of a conversation's terminal output](https://github.com/function2/cmdchatgpt/raw/assets/screenshot_2023-03-18.png)
+![AI generated image cat punk](https://github.com/function2/cmdchatgpt/raw/assets/cat_punk_openai_05_kdm6md6r.jpg)
 
 ## Usage
 
