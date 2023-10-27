@@ -1,7 +1,6 @@
-# cmdchatgpt: ChatGPT from terminal. Syntax highlighting. SQLite storage of conversations.
+# AI tools from terminal with syntax highlighting and storage.
 
-cmdchatgpt is a python / command line interface to ChatGPT and image generation tools
-It provides:
+Script I wrote to use AI tools from the terminal.
 
  - Syntax Highlighting for terminal output of conversations.
  - Storage of many conversations in a SQLite database.
