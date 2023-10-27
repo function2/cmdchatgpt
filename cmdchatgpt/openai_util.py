@@ -571,8 +571,12 @@ class ImageOpenAI:
     Image("A cat in a cityscape futuristic cyberpunk",n=10).Download('/tmp', 'cat_punk')
     """
     DEFAULT_ARGS = {
+        # 'prompt' : 'my prompt',
         'n' : 1,
         'size' : "1024x1024",
+        # seeds doesn't work (yet) with dall-e api
+        # 'prompts' : ['a','b','c'],
+        # 'seeds': [21, 52, 194],
     }
 
     def __init__(self, prompt = None,**kwargs):
@@ -580,9 +584,8 @@ class ImageOpenAI:
         Initialize OpenAI image prompt.
         """
         self.args = self.DEFAULT_ARGS | kwargs
-        if not prompt:
-            prompt = kwargs.pop('prompt')
-        self.args['prompt'] = prompt
+        if prompt:
+            self.args['prompt'] = prompt
 
         # Send to server.
         self.response = openai.Image.create(**self.args)
