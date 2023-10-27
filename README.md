@@ -31,7 +31,7 @@ i.Download('/tmp', 'cat_punk')
 # This will save 10 images to the tmp directory.
 ```
 
-![Image of a conversation's terminal output](https://github.com/function2/cmdchatgpt/raw/assets/screenshot_2023-03-18.png)
+![Image of a conversation terminal output](https://github.com/function2/cmdchatgpt/raw/assets/screenshot_2023-10-27.png)
 ![AI generated image cat punk](https://github.com/function2/cmdchatgpt/raw/assets/cat_punk_openai_05_kdm6md6r.jpg)
 
 ## Usage
