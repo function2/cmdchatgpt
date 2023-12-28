@@ -1,12 +1,13 @@
-# AI tools from terminal with syntax highlighting and storage.
+# AI tools for terminal usage (ipython or shell).
 
-Script I wrote to use AI tools from the terminal.
+Features:
 
  - Syntax Highlighting for terminal output of conversations.
  - Storage of many conversations in a SQLite database.
- - Create templates or copy a conversation.
- - Command line use of ChatGPT.
- - Image creation and downloading.
+ - Search through past conversations.
+ - ipython tab completion of stored conversations.
+ - Command line use of ChatGPT and other AI tools.
+ - Image creation and downloading from terminal.
 
 Example for use in python:
 
