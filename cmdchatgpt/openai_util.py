@@ -49,7 +49,9 @@ import pygments
 
 # OpenAI access key
 import openai
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai_client = openai.OpenAI(
+    # api_key=os.environ['OPENAI_API_KEY'],# this is also the default, it can be omitted
+)
 
 __all__ = [
     'ChatOpenAI',
@@ -108,12 +110,16 @@ print(c)
         The first element is send dict, the second is response dict
     """
     DEFAULT_ARGS = {
+        # TODO: update this docstrings for new version.
+
         # model
         # https://platform.openai.com/docs/models/overview
         # 'model'='gpt-3.5-turbo-0301'
         # 'model': 'gpt-3.5-turbo',
         'model': 'gpt-4',
         # 'model': 'gpt-4-32k',
+
+        # 'model': 'curie',
 
         # All other arguments will be default.
         # https://platform.openai.com/docs/api-reference/completions/create
@@ -443,7 +449,8 @@ print(c)
         # Network / Server errors happen A LOT.
         # Sometimes we don't want to append messages to the conversation if it fails.
         try:
-            response = openai.ChatCompletion.create(**new_prompt)
+            # print("Sending to server: ",new_prompt)
+            response = openai_client.chat.completions.create(**new_prompt)
         except:
             if remove_last_msg_on_fail:
                 self.pop()
@@ -452,7 +459,11 @@ print(c)
 
         # Save the prompt and the response from the network.
         # Use list instead of tuple so json.load gives equivalent.
-        self.prompts_and_responses.append( [new_prompt, response] )
+        # TODO for now just convert the pydantic response to a dict recursively.
+        #   we do this by converting to JSON, then loading back to dict format.
+        #   Ideally make this class (Self) a pydantic object?
+        response_dict = json.loads( response.model_dump_json() )
+        self.prompts_and_responses.append( [new_prompt, response_dict] )
         #
         return response
 
@@ -461,15 +472,21 @@ print(c)
         Send the conversation, append the response message to the
         conversation (messages variable), and return the response.
 
-        response = OpenAIObject chat.completion (JSON dict)
+        response = pydantic type: openai.types.chat.chat_completion.ChatCompletion
         """
         # Append the response to the conversation.
         response = self._Send0(remove_last_msg_on_fail, **kw)
         # Need to convert this to python dict object
         # otherwise it is a JSON type of object.
-        response_message = dict(response['choices'][0]['message'])
-        self.messages.append(response_message)
 
+        # response_message = response['choices'][0]['message']
+        response_message = dict(response.choices[0].message)
+        # We don't want these if we have to send this back when chatting.
+        response_message.pop('function_call')
+        response_message.pop('tool_calls')
+
+        self.messages.append(response_message)
+        # return raw response (unmodified)
         return response
 
     def _Chat0(self, remove_last_msg_on_fail=False, **kw):
@@ -478,7 +495,7 @@ print(c)
         of the content.
         """
         response = self.Send(remove_last_msg_on_fail, **kw)
-        return response['choices'][0]['message']['content'].strip()
+        return response.choices[0].message.content.strip()
 
     def UserChat(self,user_content, **kw):
         """
