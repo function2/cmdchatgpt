@@ -589,8 +589,10 @@ class ImageOpenAI:
     """
     DEFAULT_ARGS = {
         # 'prompt' : 'my prompt',
+        'model' : 'dall-e-3',
         'n' : 1,
         'size' : "1024x1024",
+        'quality' : 'standard',
         # seeds doesn't work (yet) with dall-e api
         # 'prompts' : ['a','b','c'],
         # 'seeds': [21, 52, 194],
@@ -605,7 +607,7 @@ class ImageOpenAI:
             self.args['prompt'] = prompt
 
         # Send to server.
-        self.response = openai.Image.create(**self.args)
+        self.response = openai_client.images.generate(**self.args)
 
     def Download(self, download_dir, prefix):
         """
@@ -620,9 +622,9 @@ class ImageOpenAI:
         """
         filenames = []
         count = 0
-        for k in self.response['data']:
+        for k in self.response.data:
             count += 1
-            url = k['url']
+            url = k.url
             filename = tempfile.NamedTemporaryFile(
                 dir = download_dir,
                 prefix = f'{prefix}_openai_{str(count).zfill(2)}_',

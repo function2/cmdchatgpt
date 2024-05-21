@@ -28,9 +28,9 @@ db.names() # or db.keys()
 # These functions create an iterator with cursor to read one at a time.
 
 # To generate and download images
-i = Image("A cat in a cityscape futuristic cyberpunk",n=10)
+i = Image("A cat in a cityscape futuristic cyberpunk")
 i.Download('/tmp', 'cat_punk')
-# This will save 10 images to the tmp directory.
+# This will save an image to the /tmp directory.
 ```
 
 ![Image of a conversation terminal output](https://github.com/function2/cmdchatgpt/raw/assets/screenshot_2023-10-27.png)
