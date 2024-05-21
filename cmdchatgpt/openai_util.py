@@ -46,6 +46,9 @@ import urllib.request
 
 # Pygments for formatting / highlighting
 import pygments
+import pygments.lexers
+import pygments.formatters
+import pygments.formatters.terminal256
 
 # OpenAI access key
 import openai
@@ -590,6 +593,7 @@ class ImageOpenAI:
     DEFAULT_ARGS = {
         # 'prompt' : 'my prompt',
         'model' : 'dall-e-3',
+        # 'model' : 'dall-e-2',
         'n' : 1,
         'size' : "1024x1024",
         'quality' : 'standard',
