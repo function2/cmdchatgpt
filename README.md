@@ -8,6 +8,7 @@ Features:
  - ipython tab completion of stored conversations.
  - Command line use of ChatGPT and other AI tools.
  - Image creation and downloading from terminal.
+   (If the terminal supports urls you can just click them.)
 
 Example for use in python:
 
