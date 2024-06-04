@@ -40,6 +40,9 @@ default_colors=black_background_colors
 import os,copy,re
 import io,json
 
+import datetime
+import pathlib
+
 # for downloading images
 import tempfile
 import urllib.request
@@ -613,12 +616,14 @@ class ImageOpenAI:
         # Send to server.
         self.response = openai_client.images.generate(**self.args)
 
-    def Download(self, download_dir, prefix):
+    def Download(self, download_dir, prefix, save_info = True):
         """
         Download image responses.
 
         download_dir = directory to store the images.
         prefix = the filename prefix to use.
+        save_info = save prompt and response information to another file.
+            This helps in recreating the file or similar if desired.
 
         returns a list of all filenames saved.
 
@@ -637,6 +642,34 @@ class ImageOpenAI:
             print("Downloading ",url)
             local_filename, headers = urllib.request.urlretrieve(url, filename)
             print("→",local_filename)
+            #
+            if save_info:
+                # Open .info file and save it along-side the image.
+                info_filename = local_filename + ".info"
+                f = io.open(info_filename,"w")
+                f.write("prompt = {}\n".format(self.args['prompt']))
+                # Dall-e 2 and 3 may differ here.
+                # It tries to revise the prompt to give more detail.
+                if hasattr(k,'revised_prompt'):
+                    f.write("revised_prompt = {}\n".format(k.revised_prompt))
+                #
+                if hasattr(self.response,'created'):
+                    f.write("created = {} = {}\n".format(self.response.created,datetime.datetime.fromtimestamp(self.response.created).strftime("%A, %B %d, %Y %I:%M:%S")))
+                #
+                f.write("\n")
+                f.write(str(k))
+                f.write("\n")
+                #
+                f.write("file_name = {}\n".format(pathlib.Path(local_filename).stem))
+                #
+                f.close()
+                print("→",info_filename)
+            #
             filenames.append(local_filename)
+
         return filenames
+
+    def __str__(self):
+        return str(self.response)
+
 ##############################################################################
