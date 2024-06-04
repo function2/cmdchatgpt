@@ -653,6 +653,8 @@ class ImageOpenAI:
                 if hasattr(k,'revised_prompt'):
                     f.write("revised_prompt = {}\n".format(k.revised_prompt))
                 #
+                f.write("model = {}\n".format(self.args['model']))
+                #
                 if hasattr(self.response,'created'):
                     f.write("created = {} = {}\n".format(self.response.created,datetime.datetime.fromtimestamp(self.response.created).strftime("%A, %B %d, %Y %I:%M:%S")))
                 #
