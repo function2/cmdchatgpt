@@ -17,6 +17,7 @@ from cmdchatgpt import *
 # Create a conversation
 c = Chat("How do exceptions work in Python 3? Give examples", temperature=.5)
 print(c) # Pretty print with escapes.
+c('and how does subprocess.Popen work? With an example')
 
 # To save conversations to a database
 db = ChatDatabase('a.sqlite')

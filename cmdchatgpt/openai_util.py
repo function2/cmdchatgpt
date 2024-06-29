@@ -1,4 +1,4 @@
-# Copyright (C) 2023  Michael Seyfert <michael@codesand.org>
+# Copyright (C) 2024  Michael Seyfert <michael@codesand.org>
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
@@ -262,6 +262,13 @@ print(c)
         """
         return self.StrTerm()
 
+    def __call__(self, content, **kw):
+        """
+        Interactive chat with AI, print the response string and return it.
+        """
+        self.U(content,**kw)
+        return self.prompts_and_responses[-1][-1]['choices'][-1]['message']['content']
+
     def GetCodeHighlighted(self,lang,code):
         """
         Try to highlight the input code string using language lexer.
@@ -407,14 +414,12 @@ print(c)
         s.write(f" default args = {self.args}")
         return s.getvalue()
 
-    def Add(self, role, content):
+    def User(self, content):
         """
-        Add a message to the conversation.
-        Role can be 'system', 'user', 'assistant'.
-
+        Add a 'user' role message to the conversation.
         This does not send the prompt to the server.
         """
-        self.messages.append({'role': role, 'content': content})
+        self.Add('user', content)
 
     def System(self, content):
         """
@@ -430,12 +435,14 @@ print(c)
         """
         self.Add('assistant', content)
 
-    def User(self, content):
+    def Add(self, role, content):
         """
-        Add a 'user' role message to the conversation.
+        Add a message to the conversation.
+        Role can be 'system', 'user', 'assistant'.
+
         This does not send the prompt to the server.
         """
-        self.Add('user', content)
+        self.messages.append({'role': role, 'content': content})
 
     def _Send0(self, remove_last_msg_on_fail=False, **kw):
         """
@@ -488,6 +495,7 @@ print(c)
         # response_message = response['choices'][0]['message']
         response_message = dict(response.choices[0].message)
         # We don't want these if we have to send this back when chatting.
+        # TODO
         response_message.pop('function_call')
         response_message.pop('tool_calls')
 
