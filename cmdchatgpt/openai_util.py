@@ -241,8 +241,27 @@ print(c)
         # s = f"{colors.HEADER}AI Chat conversation:{colors.ENDC}\n"
         for m in self.messages:
             role = m['role']
-            content = m['content'].strip()
-            s.write(self.GetContentStrTerm(role,content,colors))
+            content = m['content']
+            # str content = Standard chat and response string.
+            if isinstance(content, str):
+                s.write(self.GetContentStrTerm(role,content.strip(),colors))
+            # list content = Vision API (URL or Base64 encoded image)
+            elif isinstance(content, list):
+                # TODO duplicated in GetContentStrTerm()
+                s.write(f"{colors.ROLE_HEADER_COLOR}{colors.ROLE_HEADER}{colors.ENDC} ")
+                s.write(f"{colors.USER_ROLE}{role}{colors.ENDC}\n")
+                # Go through content types (text, image URL, images, ...)
+                for c in content:
+                    content_type = c['type']
+                    content_val  = c[content_type]
+                    if content_type == 'text':
+                        s.write(f"text: {content_val}\n")
+                    elif content_type == 'image_url':
+                        s.write(f"image_url: {content_val}\n")
+                    else:
+                        # unknown.
+                        s.write(f"Unknown content type {content_type}\n")
+
         # s += f"{colors.ENDER}End of conversation{colors.ENDC}\n"
         return s.getvalue()
 
@@ -444,6 +463,24 @@ print(c)
         """
         self.messages.append({'role': role, 'content': content})
 
+    def AddVisionURL(self, role, text, image_url):
+        """
+        Add a vision query to the conversion.
+
+        This does not send the prompt to the server.
+
+        Example:
+        c.AddVisionURL('user', "What's in this image?", "https://path_to_image.jpg")
+
+        """
+        # In this case content is an array of dict.
+        content = [
+            {"type": "text", "text": text},
+            # it looks like this API can support multiple urls here?
+            {"type": "image_url", "image_url": {"url": image_url}}
+        ]
+        self.messages.append({'role': role, 'content': content})
+
     def _Send0(self, remove_last_msg_on_fail=False, **kw):
         """
         Send the conversation, returning the response. This will not
@@ -520,6 +557,16 @@ print(c)
         """
         self.User(user_content)
         return self._Chat0(True, **kw)
+
+    def ChatImageURL(self,user_text, image_url, **kw):
+        """
+        Append content as 'user' role along with image to the Vision API.
+
+        return the response message as a string.
+        """
+        self.AddVisionURL('user', user_text, image_url, **kw)
+        return self._Chat0(True, **kw)
+
     def SystemChat(self,system_content, **kw):
         """
         Same as UserChat but use 'system' as the role.
@@ -544,8 +591,6 @@ print(c)
         """
         Shortcut for chatting (usually from ipython prompt)
         Ask the question, print response with highlighting, return self.
-
-        For interactive use. Don't use in code to be readable.
         """
         self.InteractiveChat('user',user_content,**kw)
     C = U # C for converse, another shortcut.
@@ -554,21 +599,20 @@ print(c)
         """
         Shortcut for chatting (usually from ipython prompt)
         Add system message, print response with highlighting, return self.
-
-        For interactive use. Don't use in code to be readable.
         """
         self.InteractiveChat('system',system_content,**kw)
 
     def A(self, assistant_content, **kw):
         """
         Shortcut for chatting (usually from ipython prompt)
-
-        For interactive use. Don't use in code to be readable.
         """
         self.InteractiveChat('assistant',assistant_content,**kw)
 
     def InteractiveChat(self,role,content,**kw):
-        # For interactive use from ipython.
+        """
+        Add to the conversation, then send to the server.
+        Print last query and response.
+        """
         self.Add(role,content) # append message to conversation
         self.Send(True, **kw) # send conversation
         # Pretty print last question and response.

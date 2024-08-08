@@ -38,7 +38,7 @@ Image = ImageOpenAI
 
 def GPT(prompt, **kwargs):
     """
-    Given a prompt and args, print OpenAI response.
+    Given a prompt and args, print ChatBot response.
     Returns constructed Chat object to continue the conversation if desired.
 
     Example:
