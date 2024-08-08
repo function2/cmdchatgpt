@@ -19,6 +19,10 @@ c = Chat("How do exceptions work in Python 3? Give examples", temperature=.5)
 print(c) # Pretty print with escapes.
 c('and how does subprocess.Popen work? With an example')
 
+# Vision API
+c.ChatImageURL("What type of insect is this?", "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Papilio_machaon_Mitterbach_01.jpg/1920px-Papilio_machaon_Mitterbach_01.jpg")
+c.ChatImage("What is this?", "./Downloads/img.jpg")
+
 # To save conversations to a database
 db = ChatDatabase('a.sqlite')
 # ChatDatabase works like a dict

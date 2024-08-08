@@ -47,6 +47,9 @@ import pathlib
 import tempfile
 import urllib.request
 
+# for encoding images
+import base64
+
 # Pygments for formatting / highlighting
 import pygments
 import pygments.lexers
@@ -353,7 +356,7 @@ print(c)
     keyword_regex = re.compile(r'`(.+?)`')
     ####################
 
-    def GetContentStrTerm(self,role,content,colors = black_background_colors):
+    def GetContentStrTerm(self,role,content,colors = black_background_colors) -> str:
         """
         Return string representation of one role/content.
         use ANSI escape sequences to color the output for terminal.
@@ -370,11 +373,12 @@ print(c)
             s.write(f"{colors.USER_CONTENT}{content}{colors.ENDC}\n")
 
         elif role == 'assistant':
+            s.write(f"{colors.ASSISTANT_ROLE}{role}{colors.ENDC}\n")
+
             # This replacement string highlights keyword, and then
             # restarts assistant highlighting.
             keyword_sub_str = f"`{colors.ENDC}{colors.KEYWORD_BEGIN}\\1{colors.ENDC}{colors.ASSISTANT_CONTENT}`"
 
-            s.write(f"{colors.ASSISTANT_ROLE}{role}{colors.ENDC}\n")
 
             # Look for code sections in content (for syntax highlighting)
             last_end = 0 # Position of end of last code section.
@@ -565,6 +569,18 @@ print(c)
         return the response message as a string.
         """
         self.AddVisionURL('user', user_text, image_url, **kw)
+        return self._Chat0(True, **kw)
+
+    def ChatImage(self, user_text, image_path, **kw):
+        """
+        Append content as 'user' role along with an image file.
+
+        return the response message as a string.
+        """
+        base64_image = base64.b64encode(open(image_path, "rb").read()).decode('utf-8')
+        # TODO We assume the image is jpeg for now.
+        image_str = f"data:image/jpeg;base64,{base64_image}"
+        self.AddVisionURL('user', user_text, image_str, **kw)
         return self._Chat0(True, **kw)
 
     def SystemChat(self,system_content, **kw):
