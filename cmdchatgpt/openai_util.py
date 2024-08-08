@@ -16,22 +16,6 @@
 OpenAI utilities.
 
 Classes for managing OpenAI APIs
-
-# To create a conversation with the AI
-c = Chat("How do exceptions work in Python 3? Give examples")
-
-# To save a conversation to a database
-db = ChatDatabase('a.sqlite')
-db['my_conversation'] = c
-
-## Classes:
-
-Chat()
-    a single conversation.
-
-ChatDatabase()
-    Contains many conversations. Can be stored to an SQLite file, or in memory.
-    Works similar to a dict()
 """
 
 from .colors import black_background_colors,nocolors
@@ -256,11 +240,11 @@ print(c)
                 # Go through content types (text, image URL, images, ...)
                 for c in content:
                     content_type = c['type']
-                    content_val  = str(c[content_type])
+                    content_val  = c[content_type]
                     if content_type == 'text':
                         s.write(f"text: {content_val}\n")
                     elif content_type == 'image_url':
-                        s.write(f"image_url: {content_val[0:300]}\n")
+                        s.write(f"image_url: {str(content_val)[:300]}\n")
                     else:
                         # unknown.
                         s.write(f"Unknown content type {content_type}\n")
@@ -430,7 +414,16 @@ print(c)
         for k in self.messages:
             index = idx[k['role']]
             counts[index] += 1
-            char_counts[index] += len(k['content'])
+            content = k['content']
+            if isinstance(content, str):
+                char_counts[index] += len(content)
+            elif isinstance(content, list):
+                for c in content:
+                    content_type = c['type']
+                    if content_type == 'text':
+                        char_counts[index] += len(c['text'])
+                    elif content_type == 'image_url':
+                        char_counts[index] += len(c['image_url']['url'])
         #
         s = io.StringIO()
         s.write(f"{self.__module__}.{self.__class__.__name__} @{hex(id(self))}({counts[0]} user {char_counts[0]} chars, {counts[1]} assistant {char_counts[1]} chars, {counts[2]} system {char_counts[2]} chars)[total = {sum(char_counts)} chars]")
