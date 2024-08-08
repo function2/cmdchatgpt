@@ -256,11 +256,11 @@ print(c)
                 # Go through content types (text, image URL, images, ...)
                 for c in content:
                     content_type = c['type']
-                    content_val  = c[content_type]
+                    content_val  = str(c[content_type])
                     if content_type == 'text':
                         s.write(f"text: {content_val}\n")
                     elif content_type == 'image_url':
-                        s.write(f"image_url: {content_val}\n")
+                        s.write(f"image_url: {content_val[0:300]}\n")
                     else:
                         # unknown.
                         s.write(f"Unknown content type {content_type}\n")

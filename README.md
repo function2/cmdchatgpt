@@ -1,6 +1,6 @@
-# AI tools for terminal usage (ipython or shell).
+# my scripts for AI tools for terminal usage (ipython or shell).
 
-Features:
+This repo contains my interface for AI tools. Features:
 
  - Syntax Highlighting for terminal output of conversations.
  - Storage of many conversations in a SQLite database.
