@@ -1,0 +1,12 @@
+cmdchatgpt - TODO
+
+Support database types other than just SQLite:
+ - Vector database
+ - Google SQL database
+ - Add conversation search.
+
+Vision:
+ - Properly display vision image info in console.
+ - Ensure images are not copied in conversations over and over (pronpts_and_responses)
+ - Stream conversations?
+ - Be able to download images from Chat object.
