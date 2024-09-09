@@ -1,21 +1,20 @@
-# my scripts for AI tools for terminal usage (ipython or shell).
+# my scripts for AI tools (ipython or shell).
 
 This repo contains my interface for AI tools. Features:
 
- - Syntax Highlighting for terminal output of conversations.
+ - Syntax Highlighting for terminal output.
  - Storage of many conversations in a SQLite database.
  - Search through past conversations.
  - ipython tab completion of stored conversations.
- - Command line use of ChatGPT and other AI tools.
+ - Command line use of AI tools.
  - Image creation and downloading from terminal.
-   (If the terminal supports urls you can just click them.)
 
 Example for use in python:
 
 ```python
 from cmdchatgpt import *
 # Create a conversation
-c = Chat("In unix how do I determine if two files are on the same filesystem.", temperature=.73)
+c = Chat("In unix how do I determine if two files are on the same filesystem?", temperature=.73)
 print(c) # Pretty print with escapes.
 # Continue the conversation.
 c("Give me code to do this in python3")
