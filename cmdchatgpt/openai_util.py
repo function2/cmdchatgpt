@@ -273,7 +273,8 @@ print(c)
         Interactive chat with AI, print the response string and return it.
         """
         self.U(content,**kw)
-        return self.prompts_and_responses[-1][-1]['choices'][-1]['message']['content']
+        return self
+        # return self.prompts_and_responses[-1][-1]['choices'][-1]['message']['content']
 
     def GetCodeHighlighted(self,lang,code):
         """
