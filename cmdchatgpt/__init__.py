@@ -30,6 +30,7 @@ __all__ = [
     'Chat', # default Chat bot
     'Image', # default Image generation
     'GPT','gpt',
+    'GPT_Solver','gpt_solver',
 ] + database.__all__ + openai_util.__all__
 
 # For now we only have OpenAI, make it the default.
@@ -49,3 +50,12 @@ def GPT(prompt, **kwargs):
     print(conversation)
     return conversation
 gpt = GPT
+
+def GPT_Solver(prompt, **kwargs):
+    """
+    Same as GPT but oriented towards logic problems.
+    """
+    conversation = Chat(prompt,model = 'o1-preview')
+    print(conversation)
+    return conversation
+gpt_solver = GPT_Solver
